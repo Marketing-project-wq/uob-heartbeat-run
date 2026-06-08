@@ -1,47 +1,53 @@
 <!--
   ============================================================
-  EMAIL TEMPLATE — Kode Verifikasi (OTP)
+  EMAIL TEMPLATE — Verification Code (OTP)
   Road to UOB Heartbeat Run × 20FIT
   ------------------------------------------------------------
-  CARA PAKAI (Supabase):
-   Dashboard → Authentication → Emails → Templates → "Magic Link"
-   • Subject : Kode masuk UOB Heartbeat Run kamu: {{ .Token }}
-   • Body    : tempel SELURUH isi <html>…</html> di bawah ini
-   Variabel {{ .Token }} = kode 6 digit yang dipakai layar OTP di app.
-   (Pastikan memakai template yang dipakai oleh signInWithOtp — "Magic Link".)
+  WHERE THIS GOES (Supabase — recommended):
+    Dashboard → Authentication → Emails → Templates → "Magic Link"
+      • Subject : Your UOB Heartbeat Run code: {{ .Token }}
+      • Message : paste the ENTIRE <html>…</html> below
+    {{ .Token }} = the 6-digit code shown on the app's OTP screen.
+    (Use the "Magic Link" template — that's what signInWithOtp sends.)
 
-  Warna mengikuti web:
-   biru #0060C0 · biru tua #00305f · biru rich #0A56AE · merah #F4253C
+  Mailtrap is only the SMTP that DELIVERS this email:
+    Supabase → Project Settings → Authentication → SMTP Settings
+    → fill in Mailtrap's host / port / user / pass.
+
+  If you instead design in Mailtrap → Email Templates, replace the
+  token {{ .Token }} below with Mailtrap's variable, e.g. {{otp}}.
+
+  Brand colors: blue #0060C0 · deep #00305f · rich #0A56AE · red #F4253C
   ============================================================
 -->
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Kode Verifikasi · UOB Heartbeat Run</title>
+  <title>Verification Code · UOB Heartbeat Run</title>
 </head>
-<body style="margin:0; padding:0; background-color:#F4F6FA; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+<body style="margin:0; padding:0; background-color:#EEF2F8; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
 
-  <!-- preheader (teks pratinjau di inbox, tersembunyi) -->
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all; font-size:1px; line-height:1px; color:#F4F6FA;">
-    Kode verifikasi 6 digit kamu untuk masuk ke Road to UOB Heartbeat Run.
+  <!-- preheader (hidden inbox preview text) -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all; font-size:1px; line-height:1px; color:#EEF2F8;">
+    Your 6-digit code to sign in to Road to UOB Heartbeat Run.
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EEF2F8;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
+      <td align="center" style="padding:36px 16px;">
 
-        <!-- kartu utama -->
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border-radius:24px; overflow:hidden; box-shadow:0 18px 50px -24px rgba(10,60,140,0.45);">
+        <!-- main card -->
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border-radius:26px; overflow:hidden; box-shadow:0 22px 60px -26px rgba(10,60,140,0.5);">
 
-          <!-- header: pita gradient heartbeat -->
+          <!-- header: heartbeat gradient -->
           <tr>
-            <td style="background-color:#0A56AE; background-image:linear-gradient(108deg, #0A56AE 0%, #2E63B8 38%, #6E84C8 64%, #EE9E88 100%); padding:30px 34px 26px 34px;">
+            <td style="background-color:#0A56AE; background-image:linear-gradient(108deg, #0A56AE 0%, #1F5FBE 40%, #5B7FCB 66%, #EE9E88 100%); padding:34px 36px 0 36px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:20px; letter-spacing:0.5px; color:#FFFFFF; line-height:1;">
+                  <td style="font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:22px; letter-spacing:0.5px; color:#FFFFFF; line-height:1;">
                     UOB&nbsp;HEARTBEAT&nbsp;RUN
                     <span style="display:inline-block; font-family:Arial, sans-serif; font-weight:700; font-size:12px; color:rgba(255,255,255,0.85); padding-left:10px;">× 20FIT</span>
                   </td>
@@ -52,37 +58,44 @@
                   </td>
                 </tr>
               </table>
-              <!-- garis heartbeat (merah) -->
-              <div style="margin-top:16px; height:3px; line-height:3px; font-size:0; background-color:#F4253C; border-radius:3px;">&nbsp;</div>
+              <!-- heartbeat pulse line (drawn with bordered cells) -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+                <tr>
+                  <td style="height:34px; border-bottom:3px solid #F4253C; width:42%;">&nbsp;</td>
+                  <td style="height:34px; border-bottom:3px solid #F4253C; border-left:3px solid #F4253C; width:5%; transform:skewX(-20deg);">&nbsp;</td>
+                  <td style="height:8px; border-top:3px solid #F4253C; border-right:3px solid #F4253C; width:6%; vertical-align:top;">&nbsp;</td>
+                  <td style="height:34px; border-bottom:3px solid #F4253C; width:47%;">&nbsp;</td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- isi -->
+          <!-- body -->
           <tr>
-            <td style="padding:34px 34px 8px 34px;">
-              <h1 style="margin:0; font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:26px; letter-spacing:-0.3px; color:#0E2138;">
-                Kode verifikasi kamu
+            <td style="padding:34px 36px 6px 36px;">
+              <h1 style="margin:0; font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:28px; letter-spacing:-0.3px; color:#0E2138;">
+                Your verification code
               </h1>
-              <p style="margin:10px 0 0 0; font-family:Arial, sans-serif; font-size:15px; line-height:1.6; color:#6A7C92;">
-                Gunakan kode 6 digit di bawah ini untuk masuk dan melanjutkan latihan menuju race day. Masukkan kode ini di layar verifikasi aplikasi.
+              <p style="margin:12px 0 0 0; font-family:Arial, sans-serif; font-size:15px; line-height:1.65; color:#6A7C92;">
+                Enter the 6-digit code below to sign in and continue your training toward race day. Type it on the app's verification screen.
               </p>
             </td>
           </tr>
 
-          <!-- kotak kode OTP -->
+          <!-- OTP code box -->
           <tr>
-            <td style="padding:22px 34px 6px 34px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA; border:1px solid rgba(14,33,56,0.10); border-radius:18px;">
+            <td style="padding:24px 36px 6px 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F7FC; border:1px solid rgba(14,33,56,0.10); border-radius:20px;">
                 <tr>
-                  <td align="center" style="padding:24px 16px;">
-                    <div style="font-family:Arial, sans-serif; font-weight:700; font-size:11px; letter-spacing:1.5px; color:#0060C0; text-transform:uppercase;">
-                      Kode Masuk
+                  <td align="center" style="padding:26px 16px;">
+                    <div style="font-family:Arial, sans-serif; font-weight:700; font-size:11px; letter-spacing:1.6px; color:#0060C0; text-transform:uppercase;">
+                      Sign-in code
                     </div>
-                    <div style="margin-top:10px; font-family:'Barlow Condensed', 'Arial Black', Arial, sans-serif; font-weight:800; font-size:44px; letter-spacing:12px; color:#0E2138; line-height:1;">
+                    <div style="margin-top:12px; font-family:'Barlow Condensed', 'Arial Black', Arial, sans-serif; font-weight:800; font-size:46px; letter-spacing:14px; color:#0E2138; line-height:1; padding-left:14px;">
                       {{ .Token }}
                     </div>
-                    <div style="margin-top:12px; font-family:Arial, sans-serif; font-size:12.5px; color:#6A7C92;">
-                      Berlaku 60 menit · jangan bagikan kode ini ke siapa pun
+                    <div style="margin-top:14px; font-family:Arial, sans-serif; font-size:12.5px; color:#6A7C92;">
+                      Valid for 60 minutes · never share this code with anyone
                     </div>
                   </td>
                 </tr>
@@ -90,33 +103,33 @@
             </td>
           </tr>
 
-          <!-- catatan keamanan -->
+          <!-- security note -->
           <tr>
-            <td style="padding:18px 34px 4px 34px;">
+            <td style="padding:18px 36px 4px 36px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:rgba(244,37,60,0.06); border-radius:14px;">
                 <tr>
-                  <td style="padding:13px 16px; font-family:Arial, sans-serif; font-size:13px; line-height:1.55; color:#6A7C92;">
-                    <span style="color:#F4253C; font-weight:700;">Bukan kamu yang minta?</span>
-                    Abaikan email ini — akun kamu tetap aman dan tidak ada perubahan yang dilakukan.
+                  <td style="padding:14px 16px; font-family:Arial, sans-serif; font-size:13px; line-height:1.55; color:#6A7C92;">
+                    <span style="color:#F4253C; font-weight:700;">Didn't request this?</span>
+                    You can safely ignore this email — your account stays secure and nothing was changed.
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- penutup -->
+          <!-- sign-off -->
           <tr>
-            <td style="padding:22px 34px 30px 34px;">
+            <td style="padding:22px 36px 30px 36px;">
               <p style="margin:0; font-family:Arial, sans-serif; font-size:14px; line-height:1.6; color:#0E2138;">
-                Semangat lari! 🏃‍♀️🏃‍♂️<br>
-                <span style="color:#6A7C92;">Tim Road to UOB Heartbeat Run × 20FIT</span>
+                Keep running! 🏃‍♀️🏃‍♂️<br>
+                <span style="color:#6A7C92;">The Road to UOB Heartbeat Run × 20FIT team</span>
               </p>
             </td>
           </tr>
 
           <!-- footer -->
           <tr>
-            <td style="background-color:#00305f; padding:18px 34px;">
+            <td style="background-color:#00305f; padding:20px 36px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:14px; letter-spacing:0.4px; color:#FFFFFF;">
@@ -125,7 +138,7 @@
                 </tr>
                 <tr>
                   <td style="padding-top:5px; font-family:Arial, sans-serif; font-size:11.5px; color:rgba(255,255,255,0.6);">
-                    Khusus karyawan UOB · Email ini dikirim otomatis, mohon tidak dibalas.
+                    For UOB employees · This email was sent automatically, please don't reply.
                   </td>
                 </tr>
               </table>
@@ -133,7 +146,7 @@
           </tr>
 
         </table>
-        <!-- /kartu -->
+        <!-- /card -->
 
       </td>
     </tr>

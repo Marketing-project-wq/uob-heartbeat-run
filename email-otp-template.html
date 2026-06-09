@@ -17,6 +17,10 @@
   If you instead design in Mailtrap → Email Templates, replace the
   token {{ .Token }} below with Mailtrap's variable, e.g. {{otp}}.
 
+  VISUALS: the heartbeat EKG lines are inline SVG images (data URIs).
+  They render in Apple Mail / iOS Mail / Outlook-Mac; in clients that
+  strip them the layout still looks complete (gradient + ticket + chips).
+
   Brand colors: blue #0060C0 · deep #00305f · rich #0A56AE · red #F4253C
   ============================================================
 -->
@@ -28,65 +32,84 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Verification Code · UOB Heartbeat Run</title>
 </head>
-<body style="margin:0; padding:0; background-color:#EEF2F8; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+<body style="margin:0; padding:0; background-color:#E9EFF7; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
 
   <!-- preheader (hidden inbox preview text) -->
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all; font-size:1px; line-height:1px; color:#EEF2F8;">
-    Your 6-digit code to sign in to Road to UOB Heartbeat Run.
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all; font-size:1px; line-height:1px; color:#E9EFF7;">
+    Your 6-digit code to sign in to Road to UOB Heartbeat Run — valid for 60 minutes.
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EEF2F8;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#E9EFF7;">
     <tr>
       <td align="center" style="padding:36px 16px;">
 
         <!-- main card -->
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border-radius:26px; overflow:hidden; box-shadow:0 22px 60px -26px rgba(10,60,140,0.5);">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border-radius:28px; overflow:hidden; box-shadow:0 26px 64px -28px rgba(10,60,140,0.55);">
 
-          <!-- header: heartbeat gradient -->
+          <!-- ── HERO: heartbeat gradient ── -->
           <tr>
-            <td style="background-color:#0A56AE; background-image:linear-gradient(108deg, #0A56AE 0%, #1F5FBE 40%, #5B7FCB 66%, #EE9E88 100%); padding:34px 36px 32px 36px;">
+            <td style="background-color:#0A56AE; background-image:linear-gradient(120deg, #052B63 0%, #0A56AE 38%, #2E6BC4 62%, #EF9C84 100%); padding:0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <!-- brand row -->
                 <tr>
-                  <td style="font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:22px; letter-spacing:0.5px; color:#FFFFFF; line-height:1;">
-                    UOB&nbsp;HEARTBEAT&nbsp;RUN
-                    <span style="display:inline-block; font-family:Arial, sans-serif; font-weight:700; font-size:12px; color:rgba(255,255,255,0.85); padding-left:10px;">× 20FIT</span>
+                  <td style="padding:30px 36px 0 36px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle; font-size:24px; line-height:1; padding-right:10px;">&#10084;&#65039;</td>
+                        <td style="vertical-align:middle; font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif; font-weight:800; font-size:23px; letter-spacing:0.6px; color:#FFFFFF; line-height:1;">
+                          UOB&nbsp;HEARTBEAT&nbsp;RUN
+                          <span style="display:inline-block; font-family:Arial,sans-serif; font-weight:700; font-size:12px; color:rgba(255,255,255,0.88); padding-left:9px;">&times; 20FIT</span>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
+                <!-- kicker -->
                 <tr>
-                  <td style="padding-top:6px; font-family:Arial, sans-serif; font-weight:700; font-size:11px; letter-spacing:2px; color:rgba(255,255,255,0.82);">
-                    ROAD TO RACE DAY
+                  <td style="padding:9px 36px 0 36px; font-family:Arial,sans-serif; font-weight:700; font-size:11px; letter-spacing:2.4px; color:rgba(255,255,255,0.85);">
+                    ROAD&nbsp;TO&nbsp;RACE&nbsp;DAY
+                  </td>
+                </tr>
+                <!-- heartbeat EKG line -->
+                <tr>
+                  <td style="padding:6px 0 0 0; font-size:0; line-height:0;">
+                    <img alt="" width="600" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MDAiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCA2MDAgNzAiPjxwYXRoIGQ9Ik0wLDM1IEwxNTAsMzUgTDE2OCwzNSBMMTgwLDE0IEwxOTYsNTYgTDIxMiw2IEwyMjgsNTIgTDI0NCwzNSBMMjYyLDM1IEwzMDAsMzUgTDMxOCwzNSBMMzMwLDE4IEwzNDQsNTAgTDM1OCwxMCBMMzcyLDQ4IEwzODYsMzUgTDQwNCwzNSBMNjAwLDM1IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS1vcGFjaXR5PSIwLjkiIHN0cm9rZS13aWR0aD0iMy41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=" style="display:block; width:100%; max-width:600px; height:auto; border:0;">
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- body -->
+          <!-- ── BODY intro ── -->
           <tr>
-            <td style="padding:34px 36px 6px 36px;">
-              <h1 style="margin:0; font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:28px; letter-spacing:-0.3px; color:#0E2138;">
+            <td style="padding:30px 36px 0 36px;">
+              <h1 style="margin:0; font-family:'Barlow Condensed',Arial,sans-serif; font-weight:800; font-size:30px; letter-spacing:-0.3px; color:#0E2138;">
                 Your verification code
               </h1>
-              <p style="margin:12px 0 0 0; font-family:Arial, sans-serif; font-size:15px; line-height:1.65; color:#6A7C92;">
-                Enter the 6-digit code below to sign in and continue your training toward race day. Type it on the app's verification screen.
+              <p style="margin:12px 0 0 0; font-family:Arial,sans-serif; font-size:15px; line-height:1.65; color:#6A7C92;">
+                Almost there! Enter the 6-digit code below on the app's verification screen to sign in and keep training toward race day.
               </p>
             </td>
           </tr>
 
-          <!-- OTP code box -->
+          <!-- ── OTP TICKET ── -->
           <tr>
-            <td style="padding:24px 36px 6px 36px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F7FC; border:1px solid rgba(14,33,56,0.10); border-radius:20px;">
+            <td style="padding:22px 36px 4px 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:22px; overflow:hidden; border:1px solid rgba(14,33,56,0.10);">
+                <!-- accent bar -->
                 <tr>
-                  <td align="center" style="padding:26px 16px;">
-                    <div style="font-family:Arial, sans-serif; font-weight:700; font-size:11px; letter-spacing:1.6px; color:#0060C0; text-transform:uppercase;">
-                      Sign-in code
+                  <td style="height:6px; background-color:#0060C0; background-image:linear-gradient(90deg,#0A56AE,#0060C0 55%,#F4253C); font-size:0; line-height:0;">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="center" style="background-color:#F5F8FC; padding:28px 16px 26px 16px;">
+                    <div style="font-family:Arial,sans-serif; font-weight:700; font-size:11px; letter-spacing:2px; color:#0060C0; text-transform:uppercase;">
+                      &#128274;&nbsp; Sign-in code
                     </div>
-                    <div style="margin-top:12px; font-family:'Barlow Condensed', 'Arial Black', Arial, sans-serif; font-weight:800; font-size:46px; letter-spacing:14px; color:#0E2138; line-height:1; padding-left:14px;">
+                    <div style="margin-top:14px; font-family:'Barlow Condensed','Arial Black',Arial,sans-serif; font-weight:800; font-size:50px; letter-spacing:16px; color:#0E2138; line-height:1; padding-left:16px;">
                       {{ .Token }}
                     </div>
-                    <div style="margin-top:14px; font-family:Arial, sans-serif; font-size:12.5px; color:#6A7C92;">
-                      Valid for 60 minutes · never share this code with anyone
+                    <div style="display:inline-block; margin-top:18px; background-color:#FFFFFF; border:1px solid rgba(14,33,56,0.10); border-radius:999px; padding:7px 16px; font-family:Arial,sans-serif; font-size:12.5px; color:#6A7C92;">
+                      &#9201;&#65039; Valid for 60 minutes &nbsp;·&nbsp; never share this code
                     </div>
                   </td>
                 </tr>
@@ -94,12 +117,33 @@
             </td>
           </tr>
 
-          <!-- security note -->
+          <!-- heartbeat divider -->
           <tr>
-            <td style="padding:18px 36px 4px 36px;">
+            <td align="center" style="padding:18px 36px 2px 36px; font-size:0; line-height:0;">
+              <img alt="" width="320" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MjAiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA1MjAgNDgiPjxwYXRoIGQ9Ik0wLDI0IEwxOTAsMjQgTDIwNiwyNCBMMjE4LDggTDIzMiw0MiBMMjQ2LDQgTDI2MCw0MCBMMjc0LDI0IEwyOTAsMjQgTDUyMCwyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjQyNTNDIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" style="display:inline-block; width:60%; max-width:320px; height:auto; border:0; opacity:0.85;">
+            </td>
+          </tr>
+
+          <!-- ── race-day chip + motivation ── -->
+          <tr>
+            <td style="padding:8px 36px 0 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EEF4FC; border-radius:16px;">
+                <tr>
+                  <td style="padding:16px 18px; font-family:Arial,sans-serif; font-size:13.5px; line-height:1.55; color:#0E2138;">
+                    <span style="font-weight:700; color:#0060C0;">&#127937; Race Day · 29 Aug 2026.</span>
+                    Every run you log gets you one step closer to the start line. Keep the streak alive! &#128170;
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── security note ── -->
+          <tr>
+            <td style="padding:14px 36px 4px 36px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:rgba(244,37,60,0.06); border-radius:14px;">
                 <tr>
-                  <td style="padding:14px 16px; font-family:Arial, sans-serif; font-size:13px; line-height:1.55; color:#6A7C92;">
+                  <td style="padding:14px 16px; font-family:Arial,sans-serif; font-size:13px; line-height:1.55; color:#6A7C92;">
                     <span style="color:#F4253C; font-weight:700;">Didn't request this?</span>
                     You can safely ignore this email — your account stays secure and nothing was changed.
                   </td>
@@ -108,27 +152,27 @@
             </td>
           </tr>
 
-          <!-- sign-off -->
+          <!-- ── sign-off ── -->
           <tr>
-            <td style="padding:22px 36px 30px 36px;">
-              <p style="margin:0; font-family:Arial, sans-serif; font-size:14px; line-height:1.6; color:#0E2138;">
-                Keep running! 🏃‍♀️🏃‍♂️<br>
-                <span style="color:#6A7C92;">The Road to UOB Heartbeat Run × 20FIT team</span>
+            <td style="padding:20px 36px 28px 36px;">
+              <p style="margin:0; font-family:Arial,sans-serif; font-size:14px; line-height:1.6; color:#0E2138;">
+                See you at the finish line! &#127939;&#8205;&#9792;&#65039;&#127939;&#8205;&#9794;&#65039;<br>
+                <span style="color:#6A7C92;">The Road to UOB Heartbeat Run &times; 20FIT team</span>
               </p>
             </td>
           </tr>
 
-          <!-- footer -->
+          <!-- ── footer ── -->
           <tr>
-            <td style="background-color:#00305f; padding:20px 36px;">
+            <td style="background-color:#00305f; padding:22px 36px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="font-family:'Barlow Condensed', Arial, sans-serif; font-weight:800; font-size:14px; letter-spacing:0.4px; color:#FFFFFF;">
-                    UOB&nbsp;Heartbeat&nbsp;Run <span style="font-family:Arial, sans-serif; font-weight:400; font-size:12px; color:rgba(255,255,255,0.65);">× 20FIT</span>
+                  <td style="font-family:'Barlow Condensed',Arial,sans-serif; font-weight:800; font-size:15px; letter-spacing:0.4px; color:#FFFFFF;">
+                    &#10084;&#65039;&nbsp; UOB&nbsp;Heartbeat&nbsp;Run <span style="font-family:Arial,sans-serif; font-weight:400; font-size:12px; color:rgba(255,255,255,0.65);">&times; 20FIT</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding-top:5px; font-family:Arial, sans-serif; font-size:11.5px; color:rgba(255,255,255,0.6);">
+                  <td style="padding-top:6px; font-family:Arial,sans-serif; font-size:11.5px; color:rgba(255,255,255,0.6);">
                     For UOB employees · This email was sent automatically, please don't reply.
                   </td>
                 </tr>

@@ -87,6 +87,8 @@
   // Jendela acara: 29 Agustus 2026, 06:00–09:00 WIB (UTC+7).
   var START = Date.UTC(2026, 7, 28, 23, 0, 0); // 06:00 WIB
   var END   = Date.UTC(2026, 7, 29, 2, 0, 0);  // 09:00 WIB
+  // Sementara DIBUKA untuk testing. Set false untuk kunci kembali ke jendela 29 Agt.
+  var VR_FORCE_OPEN = true;
   var PROFILE_KEY = 'uob_vr_profile';
   var DONE_KEY = 'uob_vr_done';
   var content = document.getElementById('content');
@@ -128,6 +130,7 @@
     serverNow().then(function(t){
       clockOffset = t - Date.now();
       if (preview){ document.getElementById('previewFlag').classList.remove('hide'); openApp(); return; }
+      if (VR_FORCE_OPEN){ openApp(); return; }
       gate();
     });
   }
@@ -176,7 +179,7 @@
 
   function renderTab(){
     // re-check window setiap render (kalau lewat 09:00 saat dibuka)
-    if (!isPreview()){ var n=now(); if (n<START){ renderLocked(); return; } if (n>END){ renderClosed(); return; } }
+    if (!isPreview() && !VR_FORCE_OPEN){ var n=now(); if (n<START){ renderLocked(); return; } if (n>END){ renderClosed(); return; } }
     if (tab==='profile') renderProfile();
     else if (tab==='board') renderBoard();
     else renderRun();

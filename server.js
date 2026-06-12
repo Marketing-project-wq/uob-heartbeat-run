@@ -1,10 +1,18 @@
-// server.js — sajikan index.html untuk semua request (Railway).
+// server.js — Railway. Sajikan index.html untuk app utama, dan halaman
+// Virtual Run UOB untuk /virtualrun (plus alias lamanya).
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const PORT = process.env.PORT || 3000;
-const FILE = path.join(__dirname, 'index.html');
+const INDEX = path.join(__dirname, 'index.html');
+const VRUN = path.join(__dirname, 'virtualrun', 'index.html');
+
+// Path yang mengarah ke halaman Virtual Run.
+const VRUN_PATHS = ['/virtualrun', '/virtualrun/', '/virtualrun/index.html', '/virtual-run.html', '/virtualrun.html'];
+
 http.createServer((req, res) => {
+  const url = (req.url || '/').split('?')[0].split('#')[0];
+  const file = VRUN_PATHS.indexOf(url) !== -1 ? VRUN : INDEX;
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  fs.createReadStream(FILE).pipe(res);
+  fs.createReadStream(file).on('error', () => res.end()).pipe(res);
 }).listen(PORT, () => console.log('UOB Heartbeat Run on ' + PORT));

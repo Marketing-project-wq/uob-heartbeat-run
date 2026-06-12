@@ -46,6 +46,13 @@
     .lb-name{flex:1;font-weight:700;font-size:14px}
     .lb-kcp{font-size:11.5px;color:var(--muted);font-weight:600}
     .lb-km{font-weight:800;color:var(--blue);font-size:15px}
+    .lb-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0}
+    .podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:10px 0 16px}
+    .pod{flex:1;max-width:128px;display:flex;flex-direction:column;align-items:center}
+    .pod-av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;box-shadow:0 8px 18px -8px rgba(2,32,71,.45)}
+    .pod-name{font-weight:800;font-size:12.5px;margin-top:7px;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pod-km{font-weight:800;font-size:12px;color:var(--blue);margin-top:1px}
+    .pod-base{width:100%;border-radius:12px 12px 0 0;margin-top:8px;display:flex;align-items:flex-start;justify-content:center;padding-top:7px;color:#fff;font-weight:800;font-size:19px}
     .hide{display:none}
     .spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -301,6 +308,25 @@
   }
 
   // ── BEST OF BEST (leaderboard) ──
+  function initials(name){ var p=String(name||'').trim().split(/\s+/); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase() || '?'; }
+  function podCol(item, place){
+    if (!item) return '<div class="pod"></div>';
+    var cfg = {1:{av:60,h:94,c:'#E8B339',crown:'👑'},2:{av:50,h:72,c:'#9AA7B8',crown:''},3:{av:50,h:56,c:'#CD7F4D',crown:''}}[place];
+    var first = (item.full_name||'').split(' ')[0] || 'Runner';
+    return '<div class="pod">'
+      + '<div style="font-size:18px;line-height:1;height:20px">'+(cfg.crown||'')+'</div>'
+      + '<div class="pod-av" style="width:'+cfg.av+'px;height:'+cfg.av+'px;font-size:'+Math.round(cfg.av*0.36)+'px;background:linear-gradient(135deg,'+cfg.c+',#0A56AE)">'+esc(initials(item.full_name))+'</div>'
+      + '<div class="pod-name">'+esc(first)+'</div>'
+      + '<div class="pod-km">'+esc(item.distance_km)+' km</div>'
+      + '<div class="pod-base" style="height:'+cfg.h+'px;background:'+cfg.c+'">'+place+'</div>'
+      + '</div>';
+  }
+  function rowHTML(r, rank){
+    return '<div class="lb-row"><div class="rank">'+rank+'</div>'
+      + '<div class="lb-av" style="background:linear-gradient(135deg,#2E6BC4,#0A56AE)">'+esc(initials(r.full_name))+'</div>'
+      + '<div class="lb-name">'+esc(r.full_name)+'<div class="lb-kcp">'+esc(r.kcp||'')+'</div></div>'
+      + '<div class="lb-km">'+esc(r.distance_km)+' km</div></div>';
+  }
   function renderBoard(){
     content.innerHTML = '<div class="card"><h2>Best of Best</h2><p class="lead">Virtual Run UOB — top runners by distance.</p><div id="lbList"><div class="spinner"></div></div></div>';
     fetch(SUPA + '/rest/v1/uob_virtual_run?select=full_name,kcp,distance_km&order=distance_km.desc&limit=100', { headers:{ apikey:ANON, Authorization:'Bearer '+ANON } })
@@ -308,11 +334,10 @@
       .then(function(rows){
         var el = document.getElementById('lbList'); if(!el) return;
         if (!rows || !rows.length){ el.innerHTML='<p class="center muted" style="padding:20px 0">No runs submitted yet — be the first!</p>'; return; }
-        el.innerHTML = rows.map(function(r,i){
-          return '<div class="lb-row"><div class="rank '+(i<3?'top':'')+'">'+(i+1)+'</div>'
-            + '<div class="lb-name">'+esc(r.full_name)+'<div class="lb-kcp">'+esc(r.kcp||'')+'</div></div>'
-            + '<div class="lb-km">'+esc(r.distance_km)+' km</div></div>';
-        }).join('');
+        var top = rows.slice(0, 3), rest = rows.slice(3);
+        var html = '<div class="podium">' + podCol(top[1], 2) + podCol(top[0], 1) + podCol(top[2], 3) + '</div>';
+        if (rest.length) html += '<div>' + rest.map(function(r, i){ return rowHTML(r, i + 4); }).join('') + '</div>';
+        el.innerHTML = html;
       })
       .catch(function(){ var el=document.getElementById('lbList'); if(el) el.innerHTML='<p class="center muted" style="padding:20px 0">Could not load standings. Please refresh.</p>'; });
   }

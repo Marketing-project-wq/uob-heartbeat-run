@@ -209,7 +209,7 @@
   function renderDistance(){
     var p = getProfile();
     if (!p){ runStep='details'; renderDetails(); return; }
-    var checked = false;
+    var checked = false, photoFile = null;
     content.innerHTML =
       '<div class="card">'
       + '<button id="backBtn" style="border:none;background:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;padding:0 0 10px">&larr; Edit details</button>'
@@ -217,26 +217,45 @@
       + '<p class="lead">Logging as <b>'+esc(p.full_name)+'</b> · '+esc(p.kcp)+'</p>'
       + '<div class="disclaimer">⚠️ <b>One submission only.</b> You can submit your Virtual Run result <b>just once</b> — it cannot be changed afterwards. Make sure your distance is correct before you submit.</div>'
       + '<label>DISTANCE COMPLETED (KM)</label><input id="f_km" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 5.2">'
-      + '<div class="check-row" id="agreeRow"><div class="check-box" id="agreeBox"></div><div style="font-size:12.5px;line-height:1.5;color:var(--ink)">I understand I can submit my result only once, and confirm my distance is correct.</div></div>'
+      + '<label>RUN PROOF — REQUIRED</label>'
+      + '<p style="font-size:12px;color:var(--muted);margin:-8px 0 10px;line-height:1.5">Attach a photo of your watch OR a screenshot from a health / running app clearly showing your distance (km). You cannot submit without it.</p>'
+      + '<label for="f_photo" id="photoBox" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed var(--line);border-radius:14px;padding:22px 12px;cursor:pointer;background:var(--bg);margin-bottom:14px;color:var(--muted)"><span style="font-size:26px">📷</span><span style="font-weight:700;font-size:13px;color:var(--ink)">Tap to add your run proof</span><span style="font-size:11px">Watch photo or health-app screenshot</span></label>'
+      + '<input id="f_photo" type="file" accept="image/*" style="display:none">'
+      + '<div class="check-row" id="agreeRow"><div class="check-box" id="agreeBox"></div><div style="font-size:12.5px;line-height:1.5;color:var(--ink)">I understand I can submit my result only once, and confirm my distance and proof are correct.</div></div>'
       + '<button class="btn red" id="submitRun" disabled>Submit my run (final)</button>'
       + '</div>';
     document.getElementById('backBtn').onclick = function(){ runStep='details'; renderTab(); };
     var box=document.getElementById('agreeBox'), row=document.getElementById('agreeRow'), btn=document.getElementById('submitRun');
-    row.onclick=function(){ checked=!checked; box.classList.toggle('on',checked); box.textContent=checked?'✓':''; btn.disabled=!checked; };
+    var fileInput=document.getElementById('f_photo'), photoBox=document.getElementById('photoBox');
+    // WAJIB: tombol submit hanya aktif kalau foto bukti + centang persetujuan ada.
+    function refresh(){ btn.disabled = !(checked && !!photoFile); }
+    fileInput.onchange=function(){
+      var f = fileInput.files && fileInput.files[0]; if(!f) return;
+      photoFile = f;
+      photoBox.style.borderColor = 'var(--blue)';
+      photoBox.innerHTML = '<img src="'+URL.createObjectURL(f)+'" alt="proof" style="max-height:170px;max-width:100%;border-radius:10px;display:block"><span style="font-size:11.5px;color:var(--blue);font-weight:700;margin-top:8px">Proof added ✓ — tap to change</span>';
+      refresh();
+    };
+    row.onclick=function(){ checked=!checked; box.classList.toggle('on',checked); box.textContent=checked?'✓':''; refresh(); };
     btn.onclick=function(){
       var km = parseFloat(String(document.getElementById('f_km').value).replace(',','.'));
       if (!(km>0)) return toast('Please enter your distance in km.');
+      if (!photoFile) return toast('Please attach your run proof photo first.');
       if (!checked) return;
-      btn.disabled=true; btn.textContent='Submitting…';
-      submitRun(p, km).then(function(res){
-        if (res.ok || res.dup){
-          try{ localStorage.setItem(DONE_KEY, JSON.stringify({ distance_km: km, full_name: p.full_name })); }catch(e){}
-          if (res.dup) toast('This NIK has already submitted.');
-          renderTab();
-        } else {
-          btn.disabled=false; btn.textContent='Submit my run (final)';
-          toast(res.msg || 'Could not submit. Please try again.');
-        }
+      btn.disabled=true; btn.textContent='Uploading proof…';
+      uploadProof(photoFile, p.nik).then(function(proofUrl){
+        if (!proofUrl){ btn.disabled=false; btn.textContent='Submit my run (final)'; return toast('Could not upload your proof photo. Please try again.'); }
+        btn.textContent='Submitting…';
+        submitRun(p, km, proofUrl).then(function(res){
+          if (res.ok || res.dup){
+            try{ localStorage.setItem(DONE_KEY, JSON.stringify({ distance_km: km, full_name: p.full_name })); }catch(e){}
+            if (res.dup) toast('This NIK has already submitted.');
+            renderTab();
+          } else {
+            btn.disabled=false; btn.textContent='Submit my run (final)';
+            toast(res.msg || 'Could not submit. Please try again.');
+          }
+        });
       });
     };
   }
@@ -254,8 +273,22 @@
     document.getElementById('goBoard').onclick=function(){ tab='board'; syncTabs(); renderTab(); };
   }
 
-  function submitRun(p, km){
-    var body = { full_name:p.full_name, email:p.email, phone:p.phone, nik:p.nik, kcp:p.kcp, distance_km:km };
+  // Upload foto bukti ke Supabase Storage (bucket publik 'vr-proofs') → URL publik.
+  function uploadProof(file, nik){
+    var ext = ((file.name && file.name.split('.').pop()) || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,'') || 'jpg';
+    var name = 'vr_' + String(nik||'x').replace(/[^0-9a-zA-Z]/g,'') + '_' + Date.now() + '.' + ext;
+    return fetch(SUPA + '/storage/v1/object/vr-proofs/' + name, {
+      method:'POST',
+      headers:{ apikey:ANON, Authorization:'Bearer '+ANON, 'Content-Type': file.type || 'image/jpeg', 'x-upsert':'true' },
+      body: file
+    }).then(function(r){
+      if (r.status>=200 && r.status<300) return SUPA + '/storage/v1/object/public/vr-proofs/' + name;
+      return null;
+    }).catch(function(){ return null; });
+  }
+
+  function submitRun(p, km, proofUrl){
+    var body = { full_name:p.full_name, email:p.email, phone:p.phone, nik:p.nik, kcp:p.kcp, distance_km:km, proof_url:proofUrl || null };
     return fetch(SUPA + '/rest/v1/uob_virtual_run', {
       method:'POST',
       headers:{ apikey:ANON, Authorization:'Bearer '+ANON, 'Content-Type':'application/json', Prefer:'return=minimal' },

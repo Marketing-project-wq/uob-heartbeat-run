@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Virtual Run UOB — TEST</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --blue:#0060C0; --blue-rich:#0A56AE; --deep:#00305f; --blue-deep:#00305f; --red:#F4253C;
+      --ink:#0E2138; --muted:#6A7C92; --line:#E3E9F2; --card:#fff; --bg:#EEF2F8;
+      --ui:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+      --font-display:'Barlow Condensed','Inter',sans-serif;
+      --font-num:'JetBrains Mono',ui-monospace,monospace;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;padding:0;background:var(--bg);font-family:var(--ui);color:var(--ink)}
+    .wrap{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+    .topbar{background:var(--deep);background-image:linear-gradient(115deg,#052B63,#0A56AE 55%,#2E6BC4);color:#fff;padding:18px 20px 16px}
+    .topbar .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:.3px}
+    .topbar .sub{font-size:11px;letter-spacing:2px;opacity:.85;font-weight:700;margin-top:3px}
+    .content{flex:1;padding:18px 16px 90px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+    h2{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.4px;margin:0 0 4px}
+    p.lead{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 16px}
+    label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.3px;margin:0 0 6px}
+    input{width:100%;border:1.5px solid var(--line);border-radius:13px;padding:13px 15px;font-size:15px;font-family:var(--ui);color:var(--ink);outline:none;background:var(--bg);margin-bottom:14px}
+    input:focus{border-color:var(--blue)}
+    .btn{width:100%;border:none;border-radius:14px;padding:15px 0;font-weight:800;font-size:15.5px;font-family:var(--ui);cursor:pointer;color:#fff;background:var(--blue-rich)}
+    .btn.red{background:var(--red)}
+    .btn:disabled{background:rgba(2,32,71,.12);color:var(--muted);cursor:not-allowed}
+    .btn.ghost{background:transparent;color:var(--blue);border:1.5px solid var(--line)}
+    .center{text-align:center}
+    .big{font-family:var(--font-num);font-weight:700;font-size:40px;letter-spacing:-1.5px;line-height:1}
+    .muted{color:var(--muted)}
+    .pill{display:inline-block;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:700}
+    .disclaimer{background:rgba(244,37,60,.06);border:1px solid rgba(244,37,60,.2);border-radius:13px;padding:13px 14px;font-size:12.5px;line-height:1.5;color:var(--ink);margin-bottom:14px}
+    .check-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;cursor:pointer}
+    .check-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;margin-top:1px}
+    .check-box.on{background:var(--blue);border-color:var(--blue)}
+    .tabbar{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;border-top:1px solid var(--line);display:flex;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+    .tab{flex:1;text-align:center;border:none;background:none;cursor:pointer;font-family:var(--ui);font-weight:700;font-size:11.5px;color:var(--muted);padding:6px 0}
+    .tab.on{color:var(--blue)}
+    .tab .ic{font-size:20px;display:block;margin-bottom:2px}
+    .lb-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-top:1px solid var(--line)}
+    .lb-row:first-child{border-top:none}
+    .rank{width:26px;text-align:center;font-weight:800;color:var(--muted)}
+    .rank.top{color:var(--red)}
+    .lb-name{flex:1;font-weight:700;font-size:14px}
+    .lb-kcp{font-size:11.5px;color:var(--muted);font-weight:600}
+    .lb-km{font-weight:800;color:var(--blue);font-size:15px}
+    .lb-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;font-family:var(--font-display)}
+    .podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;padding:8px 0 4px}
+    .pod{flex:1;display:flex;flex-direction:column;align-items:center}
+    .pod-avwrap{position:relative;margin-bottom:8px}
+    .pod-av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:var(--font-display)}
+    .pod-badge{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:12px;border:2px solid var(--bg)}
+    .pod-name{font-family:var(--font-display);font-weight:800;font-size:12.5px;color:var(--ink);text-align:center;line-height:1.1;max-width:92px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pod-km{font-family:var(--font-num);font-weight:700;font-size:14px;color:var(--blue);white-space:nowrap}
+    .pod-base{width:100%;max-width:78px;margin-top:8px;border-radius:12px 12px 0 0}
+    .hide{display:none}
+    .spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+    .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--deep);color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;font-weight:600;z-index:50;opacity:0;transition:opacity .2s;max-width:90%}
+    .toast.show{opacity:1}
+    .preview-flag{background:#E8B339;color:#3a2a00;text-align:center;font-size:11px;font-weight:800;padding:5px;letter-spacing:.5px}
+    .congrats-ic{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#0E9F6E,#0A56AE);display:flex;align-items:center;justify-content:center;font-size:46px;margin:6px auto 0;animation:pop .5s cubic-bezier(.22,1,.36,1)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="preview-flag" style="background:#F4253C;color:#fff">🧪 TEST ENVIRONMENT — separate from the live event</div>
+    <div id="previewFlag" class="preview-flag hide">⚠️ PREVIEW MODE — not the live event</div>
+    <div class="topbar">
+      <a href="/" style="color:rgba(255,255,255,0.9);text-decoration:none;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px">&larr; Back to app</a>
+      <div class="brand" style="margin-top:10px">❤️ Virtual Run UOB</div>
+      <div class="sub">UOB HEARTBEAT RUN × 20FIT</div>
+    </div>
+    <div class="content" id="content">
+      <div class="spinner"></div>
+      <p class="center muted">Loading…</p>
+    </div>
+  </div>
+  <div class="tabbar hide" id="tabbar">
+    <button class="tab on" data-tab="run"><span class="ic">🏃</span>Log Run</button>
+    <button class="tab" data-tab="board"><span class="ic">🏆</span>Best of Best</button>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var SUPA = 'https://cpvzwqptzcxnwzfzgrmt.supabase.co';
+  var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwdnp3cXB0emN4bnd6Znpncm10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MzE0MzksImV4cCI6MjA5MTIwNzQzOX0.DIP-tTFxa3GHMhT6b1Tq-Zz0a24P-vbU9ixEtITbqpI';
+  // Jendela acara: 29 Agustus 2026, 06:00–09:00 WIB (UTC+7).
+  var START = Date.UTC(2026, 7, 28, 23, 0, 0);
+  var END   = Date.UTC(2026, 7, 29, 2, 0, 0);
+  // Sementara DIBUKA untuk testing. Set false untuk kunci ke jendela 29 Agt.
+  var VR_FORCE_OPEN = true;
+  var PROFILE_KEY = 'uob_vrtest_profile';
+  var DONE_KEY = 'uob_vrtest_done';
+  var content = document.getElementById('content');
+  var tabbar = document.getElementById('tabbar');
+  var toastEl = document.getElementById('toast');
+  var clockOffset = 0;
+  var tab = 'run';
+  var runStep = 'details'; // details -> distance
+
+  function toast(m){ toastEl.textContent = m; toastEl.classList.add('show'); setTimeout(function(){ toastEl.classList.remove('show'); }, 2600); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+  function now(){ return Date.now() + clockOffset; }
+  function getProfile(){ try{ return JSON.parse(localStorage.getItem(PROFILE_KEY)||'null'); }catch(e){ return null; } }
+  function getDone(){ try{ return JSON.parse(localStorage.getItem(DONE_KEY)||'null'); }catch(e){ return null; } }
+
+  function serverNow(){
+    return fetch(SUPA + '/rest/v1/', { method:'HEAD', headers:{ apikey: ANON } })
+      .then(function(r){ var d = r.headers.get('date'); var t = d ? Date.parse(d) : NaN; return isNaN(t) ? Date.now() : t; })
+      .catch(function(){ return Date.now(); });
+  }
+  function isPreview(){
+    try{
+      if (localStorage.getItem('uob_vrtest_preview') === '1') return true;
+      if (location.search.indexOf('preview=1') !== -1) { localStorage.setItem('uob_vrtest_preview','1'); return true; }
+    }catch(e){}
+    return false;
+  }
+  function fmtCountdown(ms){
+    if (ms < 0) ms = 0; var s = Math.floor(ms/1000);
+    var d = Math.floor(s/86400); s-=d*86400; var h=Math.floor(s/3600); s-=h*3600; var m=Math.floor(s/60); s-=m*60;
+    return (d>0? d+'d ':'') + String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }
+
+  function boot(){
+    var preview = isPreview();
+    serverNow().then(function(t){
+      clockOffset = t - Date.now();
+      if (preview){ document.getElementById('previewFlag').classList.remove('hide'); openApp(); return; }
+      if (VR_FORCE_OPEN){ openApp(); return; }
+      gate();
+    });
+  }
+  function gate(){
+    var n = now();
+    if (n < START){ renderLocked(); } else if (n > END){ renderClosed(); } else { openApp(); }
+  }
+  function renderLocked(){
+    tabbar.classList.add('hide');
+    content.innerHTML =
+      '<div class="card center">'
+      + '<div class="pill" style="background:rgba(0,96,192,.1);color:var(--blue)">LOCKED</div>'
+      + '<h2 style="margin-top:14px">Virtual Run opens soon</h2>'
+      + '<p class="lead">The Virtual Run UOB is only open on <b>29 August 2026, 06:00–09:00 WIB</b>. Come back during that window to submit your run.</p>'
+      + '<div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.5px">OPENS IN</div>'
+      + '<div class="big" id="cd" style="color:var(--blue);margin-top:6px">--:--:--</div>'
+      + '</div>';
+    (function tick(){ var el=document.getElementById('cd'); if(!el) return; el.textContent = fmtCountdown(START - now()); if (now() >= START){ gate(); return; } setTimeout(tick, 1000); })();
+  }
+  function renderClosed(){
+    tabbar.classList.add('hide');
+    content.innerHTML =
+      '<div class="card center">'
+      + '<div class="pill" style="background:rgba(244,37,60,.1);color:var(--red)">CLOSED</div>'
+      + '<h2 style="margin-top:14px">The Virtual Run has ended</h2>'
+      + '<p class="lead">Submissions were open on 29 August 2026, 06:00–09:00 WIB and are now closed. Thank you for joining the UOB Heartbeat Run!</p>'
+      + '<button class="btn" id="seeBoard">See final standings</button>'
+      + '</div>';
+    document.getElementById('seeBoard').onclick = function(){ tabbar.classList.remove('hide'); tab='board'; renderTab(); };
+  }
+
+  function openApp(){
+    tabbar.classList.remove('hide');
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(b){
+      b.onclick = function(){ tab = b.getAttribute('data-tab'); syncTabs(); renderTab(); };
+    });
+    syncTabs(); renderTab();
+  }
+  function syncTabs(){ Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(b){ b.classList.toggle('on', b.getAttribute('data-tab')===tab); }); }
+
+  function renderTab(){
+    if (!isPreview() && !VR_FORCE_OPEN){ var n=now(); if (n<START){ renderLocked(); return; } if (n>END){ renderClosed(); return; } }
+    if (tab==='board') renderBoard(); else renderRun();
+  }
+
+  // ── LOG RUN (data dulu, lalu jarak, sekali submit) ──
+  function renderRun(){
+    var done = getDone();
+    if (done){ renderCongrats(done); return; }
+    if (runStep === 'details') renderDetails(); else renderDistance();
+  }
+
+  function renderDetails(){
+    var p = getProfile() || {};
+    content.innerHTML =
+      '<div class="card">'
+      + '<h2>Your details</h2>'
+      + '<p class="lead">Enter your details first to register for the Virtual Run. You only submit your run once, so make sure they are correct.</p>'
+      + '<label>FULL NAME</label><input id="f_name" type="text" placeholder="Full name as per ID" value="'+esc(p.full_name)+'">'
+      + '<label>EMAIL</label><input id="f_email" type="email" inputmode="email" placeholder="your@email.com" value="'+esc(p.email)+'">'
+      + '<label>PHONE NUMBER</label><input id="f_phone" type="tel" inputmode="tel" placeholder="0812xxxxxxxx" value="'+esc(p.phone)+'">'
+      + '<label>EMPLOYEE NIK</label><input id="f_nik" type="text" inputmode="numeric" placeholder="Your employee NIK" value="'+esc(p.nik)+'">'
+      + '<label>KCP (BRANCH)</label><input id="f_kcp" type="text" placeholder="Type your branch name" value="'+esc(p.kcp)+'">'
+      + '<button class="btn" id="toRun">Continue to log run</button>'
+      + '</div>';
+    document.getElementById('toRun').onclick = function(){
+      var prof = {
+        full_name: document.getElementById('f_name').value.trim(),
+        email: document.getElementById('f_email').value.trim(),
+        phone: document.getElementById('f_phone').value.trim(),
+        nik: document.getElementById('f_nik').value.trim(),
+        kcp: document.getElementById('f_kcp').value.trim()
+      };
+      if (prof.full_name.length < 2) return toast('Please enter your full name.');
+      if (!/.+@.+\..+/.test(prof.email)) return toast('Please enter a valid email.');
+      if (prof.phone.replace(/\D/g,'').length < 8) return toast('Please enter a valid phone number.');
+      if (prof.nik.replace(/\D/g,'').length < 5) return toast('Please enter your employee NIK.');
+      if (prof.kcp.length < 2) return toast('Please enter your branch (KCP).');
+      try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(prof)); }catch(e){}
+      runStep = 'distance'; renderTab();
+    };
+  }
+
+  function renderDistance(){
+    var p = getProfile();
+    if (!p){ runStep='details'; renderDetails(); return; }
+    var checked = false, photoFile = null;
+    content.innerHTML =
+      '<div class="card">'
+      + '<button id="backBtn" style="border:none;background:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;padding:0 0 10px">&larr; Edit details</button>'
+      + '<h2>Submit your run</h2>'
+      + '<p class="lead">Logging as <b>'+esc(p.full_name)+'</b> · '+esc(p.kcp)+'</p>'
+      + '<div class="disclaimer">⚠️ <b>One submission only.</b> You can submit your Virtual Run result <b>just once</b> — it cannot be changed afterwards. Make sure your distance is correct before you submit.</div>'
+      + '<label>DISTANCE COMPLETED (KM)</label><input id="f_km" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 5.2">'
+      + '<label>RUN PROOF — REQUIRED</label>'
+      + '<p style="font-size:12px;color:var(--muted);margin:-8px 0 10px;line-height:1.5">Attach a photo of your watch OR a screenshot from a health / running app clearly showing your distance (km). You cannot submit without it.</p>'
+      + '<label for="f_photo" id="photoBox" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed var(--line);border-radius:14px;padding:22px 12px;cursor:pointer;background:var(--bg);margin-bottom:14px;color:var(--muted)"><span style="font-size:26px">📷</span><span style="font-weight:700;font-size:13px;color:var(--ink)">Tap to add your run proof</span><span style="font-size:11px">Watch photo or health-app screenshot</span></label>'
+      + '<input id="f_photo" type="file" accept="image/*" style="display:none">'
+      + '<div class="check-row" id="agreeRow"><div class="check-box" id="agreeBox"></div><div style="font-size:12.5px;line-height:1.5;color:var(--ink)">I understand I can submit my result only once, and confirm my distance and proof are correct.</div></div>'
+      + '<button class="btn red" id="submitRun" disabled>Submit my run (final)</button>'
+      + '</div>';
+    document.getElementById('backBtn').onclick = function(){ runStep='details'; renderTab(); };
+    var box=document.getElementById('agreeBox'), row=document.getElementById('agreeRow'), btn=document.getElementById('submitRun');
+    var fileInput=document.getElementById('f_photo'), photoBox=document.getElementById('photoBox');
+    // WAJIB: tombol submit hanya aktif kalau foto bukti + centang persetujuan ada.
+    function refresh(){ btn.disabled = !(checked && !!photoFile); }
+    fileInput.onchange=function(){
+      var f = fileInput.files && fileInput.files[0]; if(!f) return;
+      photoFile = f;
+      photoBox.style.borderColor = 'var(--blue)';
+      photoBox.innerHTML = '<img src="'+URL.createObjectURL(f)+'" alt="proof" style="max-height:170px;max-width:100%;border-radius:10px;display:block"><span style="font-size:11.5px;color:var(--blue);font-weight:700;margin-top:8px">Proof added ✓ — tap to change</span>';
+      refresh();
+    };
+    row.onclick=function(){ checked=!checked; box.classList.toggle('on',checked); box.textContent=checked?'✓':''; refresh(); };
+    btn.onclick=function(){
+      var km = parseFloat(String(document.getElementById('f_km').value).replace(',','.'));
+      if (!(km>0)) return toast('Please enter your distance in km.');
+      if (!photoFile) return toast('Please attach your run proof photo first.');
+      if (!checked) return;
+      btn.disabled=true; btn.textContent='Uploading proof…';
+      uploadProof(photoFile, p.nik).then(function(proofUrl){
+        if (!proofUrl){ btn.disabled=false; btn.textContent='Submit my run (final)'; return toast('Could not upload your proof photo. Please try again.'); }
+        btn.textContent='Submitting…';
+        submitRun(p, km, proofUrl).then(function(res){
+          if (res.ok || res.dup){
+            try{ localStorage.setItem(DONE_KEY, JSON.stringify({ distance_km: km, full_name: p.full_name })); }catch(e){}
+            if (res.dup) toast('This NIK has already submitted.');
+            renderTab();
+          } else {
+            btn.disabled=false; btn.textContent='Submit my run (final)';
+            toast(res.msg || 'Could not submit. Please try again.');
+          }
+        });
+      });
+    };
+  }
+
+  function renderCongrats(done){
+    var first = (done.full_name||'').split(' ')[0] || 'Runner';
+    content.innerHTML =
+      '<div class="card center">'
+      + '<div class="congrats-ic">🎉</div>'
+      + '<h2 style="margin-top:18px">Congratulations on finishing your run!</h2>'
+      + '<div class="big" style="color:var(--blue);margin:14px 0 2px">'+esc(done.distance_km)+' <span style="font-size:18px">km</span></div>'
+      + '<p class="lead" style="margin-top:10px">Amazing work, '+esc(first)+'. <b>This is not the end</b> — it’s the beginning of your next goal. Keep moving and keep inspiring fellow UOB runners! 💙</p>'
+      + '<button class="btn" id="goBoard">See Best of Best</button>'
+      + '</div>';
+    document.getElementById('goBoard').onclick=function(){ tab='board'; syncTabs(); renderTab(); };
+  }
+
+  // Upload foto bukti ke Supabase Storage (bucket publik 'vr-proofs') → URL publik.
+  function uploadProof(file, nik){
+    var ext = ((file.name && file.name.split('.').pop()) || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,'') || 'jpg';
+    var name = 'vr_' + String(nik||'x').replace(/[^0-9a-zA-Z]/g,'') + '_' + Date.now() + '.' + ext;
+    return fetch(SUPA + '/storage/v1/object/vr-proofs/' + name, {
+      method:'POST',
+      headers:{ apikey:ANON, Authorization:'Bearer '+ANON, 'Content-Type': file.type || 'image/jpeg', 'x-upsert':'true' },
+      body: file
+    }).then(function(r){
+      if (r.status>=200 && r.status<300) return SUPA + '/storage/v1/object/public/vr-proofs/' + name;
+      return null;
+    }).catch(function(){ return null; });
+  }
+
+  function submitRun(p, km, proofUrl){
+    var body = { full_name:p.full_name, email:p.email, phone:p.phone, nik:p.nik, kcp:p.kcp, distance_km:km, proof_url:proofUrl || null };
+    return fetch(SUPA + '/rest/v1/uob_virtual_run_test', {
+      method:'POST',
+      headers:{ apikey:ANON, Authorization:'Bearer '+ANON, 'Content-Type':'application/json', Prefer:'return=minimal' },
+      body: JSON.stringify(body)
+    }).then(function(r){
+      if (r.status===201 || r.status===200 || r.status===204) return { ok:true };
+      if (r.status===409) return { ok:false, dup:true };
+      return { ok:false, msg:'Submit failed ('+r.status+')' };
+    }).catch(function(){ return { ok:false, msg:'Network error — check your connection.' }; });
+  }
+
+  // ── BEST OF BEST (leaderboard) ──
+  var MEDAL = { 1:'#F0B429', 2:'#B9C2CC', 3:'#C97B3B' };
+  var PODH = { 1:96, 2:70, 3:56 };
+  function initials(name){ var p=String(name||'').trim().split(/\s+/); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase() || '?'; }
+  function podCol(item, place){
+    if (!item) return '<div class="pod" style="opacity:.4"><div class="pod-avwrap"><div class="pod-av" style="width:'+(place===1?60:48)+'px;height:'+(place===1?60:48)+'px;background:rgba(2,32,71,.08)"></div></div><div class="pod-name">—</div><div class="pod-base" style="height:'+PODH[place]+'px;background:rgba(0,96,192,.08)"></div></div>';
+    var av = place===1?60:48;
+    var first = (item.full_name||'').split(' ')[0] || 'Runner';
+    var baseBg = place===1 ? 'linear-gradient(var(--blue),var(--blue-deep))' : 'rgba(0,96,192,0.13)';
+    return '<div class="pod">'
+      + '<div class="pod-avwrap">'
+      +   '<div class="pod-av" style="width:'+av+'px;height:'+av+'px;font-size:'+Math.round(av*0.34)+'px;background:linear-gradient(135deg,#2E6BC4,#0A56AE);box-shadow:0 0 0 3px '+MEDAL[place]+'">'+esc(initials(item.full_name))+'</div>'
+      +   '<div class="pod-badge" style="background:'+MEDAL[place]+'">'+place+'</div>'
+      + '</div>'
+      + '<div class="pod-name">'+esc(first)+'</div>'
+      + '<div class="pod-km">'+esc(item.distance_km)+' km</div>'
+      + '<div class="pod-base" style="height:'+PODH[place]+'px;background:'+baseBg+'"></div>'
+      + '</div>';
+  }
+  function rowHTML(r, rank){
+    return '<div class="lb-row"><div class="rank">'+rank+'</div>'
+      + '<div class="lb-av" style="background:linear-gradient(135deg,#2E6BC4,#0A56AE)">'+esc(initials(r.full_name))+'</div>'
+      + '<div class="lb-name">'+esc(r.full_name)+'<div class="lb-kcp">'+esc(r.kcp||'')+'</div></div>'
+      + '<div class="lb-km">'+esc(r.distance_km)+' km</div></div>';
+  }
+  var EKG = '<div style="margin:0 0 8px;text-align:center"><svg viewBox="0 0 520 40" width="100%" height="34" preserveAspectRatio="none" style="max-width:340px;display:inline-block"><path d="M0,20 L180,20 L196,20 L208,6 L222,34 L236,3 L250,33 L264,20 L520,20" fill="none" stroke="#F4253C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+  function renderBoard(){
+    content.innerHTML = '<div class="card"><h2>Best of Best</h2><p class="lead">Virtual Run UOB — top runners by distance.</p><div id="lbList"><div class="spinner"></div></div></div>';
+    fetch(SUPA + '/rest/v1/uob_virtual_run_test?select=full_name,kcp,distance_km&order=distance_km.desc&limit=100', { headers:{ apikey:ANON, Authorization:'Bearer '+ANON } })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        var el = document.getElementById('lbList'); if(!el) return;
+        if (!rows || !rows.length){ el.innerHTML='<p class="center muted" style="padding:20px 0">No runs submitted yet — be the first!</p>'; return; }
+        var top = rows.slice(0, 3), rest = rows.slice(3);
+        var html = EKG + '<div class="podium">' + podCol(top[1], 2) + podCol(top[0], 1) + podCol(top[2], 3) + '</div>';
+        if (rest.length) html += '<div style="margin-top:6px">' + rest.map(function(r, i){ return rowHTML(r, i + 4); }).join('') + '</div>';
+        el.innerHTML = html;
+      })
+      .catch(function(){ var el=document.getElementById('lbList'); if(el) el.innerHTML='<p class="center muted" style="padding:20px 0">Could not load standings. Please refresh.</p>'; });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

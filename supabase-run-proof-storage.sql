@@ -7,6 +7,7 @@
 -- ============================================================
 
 -- 1) Validation columns on the activities table
+alter table uob_activities add column if not exists photo_url    text;    -- URL foto bukti lari (WAJIB tersimpan untuk verifikasi)
 alter table uob_activities add column if not exists proof_valid  boolean;
 alter table uob_activities add column if not exists proof_status text;   -- 'auto_verified' | 'needs_review'
 

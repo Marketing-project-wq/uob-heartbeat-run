@@ -184,9 +184,28 @@
   }
 
   // ── LOG RUN (data dulu, lalu jarak, sekali submit) ──
+  var nikChecked = false;
+  // Cek server berdasarkan NIK → status "sudah submit" ikut sinkron lintas
+  // device (mis. submit di HP, buka di laptop → tetap tampil sudah selesai).
+  function checkSubmitted(nik){
+    return fetch(SUPA + '/rest/v1/uob_virtual_run?nik=eq.' + encodeURIComponent(nik) + '&select=distance_km,full_name&limit=1', { headers:{ apikey:ANON, Authorization:'Bearer '+ANON } })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){ return (rows && rows[0]) || null; })
+      .catch(function(){ return null; });
+  }
   function renderRun(){
     var done = getDone();
     if (done){ renderCongrats(done); return; }
+    var p = getProfile();
+    if (p && p.nik && !nikChecked){
+      nikChecked = true;
+      content.innerHTML = '<div class="card center"><div class="spinner"></div><p class="muted">Checking your entry…</p></div>';
+      checkSubmitted(p.nik).then(function(row){
+        if (row){ try{ localStorage.setItem(DONE_KEY, JSON.stringify({ distance_km: row.distance_km, full_name: p.full_name })); }catch(e){} }
+        renderTab();
+      });
+      return;
+    }
     if (runStep === 'details') renderDetails(); else renderDistance();
   }
 

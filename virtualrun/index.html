@@ -120,10 +120,9 @@
       .catch(function(){ return Date.now(); });
   }
   function isPreview(){
-    try{
-      if (localStorage.getItem('uob_vr_preview') === '1') return true;
-      if (location.search.indexOf('preview=1') !== -1) { localStorage.setItem('uob_vr_preview','1'); return true; }
-    }catch(e){}
+    // Production lock: preview backdoor disabled. Also clear any stale flag so
+    // devices used during testing are re-locked to the race-day window.
+    try{ localStorage.removeItem('uob_vr_preview'); }catch(e){}
     return false;
   }
   function fmtCountdown(ms){

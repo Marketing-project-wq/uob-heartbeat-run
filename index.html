@@ -158,6 +158,42 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
       window.Babel.transformScriptTags();
     }
+
+    // Hide duplicate NIK/Gender fields in profile completion form
+    var __profileFormFix = document.createElement('style');
+    __profileFormFix.textContent =
+      'form[class*="profile"] label:has(+ input[placeholder*="NIK"]),' +
+      'form[class*="profile"] input[placeholder*="NIK"],' +
+      'form[class*="profile"] label:contains("EMPLOYEE NIK"),' +
+      'form label:contains("GENDER"),' +
+      'form button:contains("Male"),' +
+      'form button:contains("Female"),' +
+      '[class*="profile"] [class*="gender"],' +
+      '[class*="profile"] [class*="nik"],' +
+      '[class*="ProfileForm"] [class*="gender"],' +
+      '[class*="ProfileForm"] [class*="nik"] { display: none !important; }';
+    document.head.appendChild(__profileFormFix);
+
+    // Also observe for dynamically added forms and hide NIK/Gender fields
+    setTimeout(function() {
+      var inputs = document.querySelectorAll('input[placeholder*="NIK"], input[placeholder*="Gender"]');
+      inputs.forEach(function(input) {
+        var parent = input.parentElement;
+        if (parent) parent.style.display = 'none';
+        var label = input.previousElementSibling;
+        if (label) label.style.display = 'none';
+      });
+      var genderButtons = document.querySelectorAll('button');
+      genderButtons.forEach(function(btn) {
+        if (btn.textContent === 'Male' || btn.textContent === 'Female') {
+          var form = btn.closest('form');
+          if (form && form.textContent.includes('Complete your profile')) {
+            btn.style.display = 'none';
+          }
+        }
+      });
+    }, 500);
+
   } catch (err) {
     setStatus('Error unpacking: ' + err.message);
     console.error('Bundle unpack error:', err);

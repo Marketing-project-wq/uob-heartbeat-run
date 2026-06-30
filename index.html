@@ -194,6 +194,54 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
     }, 500);
 
+    // Fallback mechanism for log run data loading failure
+    var __logRunFallback = document.createElement('style');
+    __logRunFallback.textContent =
+      '[class*="fallback-banner"] { ' +
+      'background: #fff3cd !important; border: 2px solid #ffc107 !important; ' +
+      'padding: 16px !important; border-radius: 8px !important; margin: 16px 0 !important; ' +
+      'text-align: center !important; display: none !important; z-index: 1000 !important; }' +
+      '[class*="fallback-banner"].show { display: block !important; }' +
+      '[class*="fallback-banner"] a { ' +
+      'color: #d39e00 !important; text-decoration: underline !important; font-weight: bold !important; }';
+    document.head.appendChild(__logRunFallback);
+
+    // Monitor log run data loading and show fallback if needed
+    setTimeout(function() {
+      var checkLogRunData = setInterval(function() {
+        var logRunSection = document.querySelector('[class*="run"], [class*="activity"], [class*="log"]');
+        var errorIndicator = document.querySelector('[class*="error"], [class*="failed"]');
+        
+        if (errorIndicator && errorIndicator.textContent.includes('error')) {
+          clearInterval(checkLogRunData);
+          
+          // Create fallback banner
+          var banner = document.createElement('div');
+          banner.className = 'fallback-banner show';
+          banner.innerHTML = '<strong>⚠️ Sistem sedang maintenance</strong><br>' +
+            'Jika Anda tidak bisa mencatat aktivitas, silakan gunakan form ini sementara: ' +
+            '<a href="https://docs.google.com/forms/d/e/1FAIpQLSclUS6HH4gFvc2k0riC932LFKBk79U4kh21b45mZ64e6gJesw/viewform?usp=dialog" target="_blank">' +
+            'Klik di sini untuk form backup</a>';
+          
+          var mainContent = document.querySelector('[class*="main"], [class*="content"], body');
+          if (mainContent) mainContent.insertBefore(banner, mainContent.firstChild);
+        }
+      }, 1000);
+      
+      // Stop checking after 30 seconds to avoid overhead
+      setTimeout(function() { clearInterval(checkLogRunData); }, 30000);
+    }, 2000);
+
+    // Also catch and log any errors from log run feature
+    window.addEventListener('error', function(e) {
+      if (e.message && (e.message.includes('log') || e.message.includes('run') || e.message.includes('activity'))) {
+        console.warn('[Log Run Error]:', e.message);
+        var banner = document.querySelector('.fallback-banner');
+        if (banner) banner.classList.add('show');
+      }
+    });
+
+
   } catch (err) {
     setStatus('Error unpacking: ' + err.message);
     console.error('Bundle unpack error:', err);

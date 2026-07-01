@@ -177,10 +177,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Debug: Log what's actually rendered in DOM after Babel transforms
-    console.log('[BUNDLER] After Babel transform - Form check:',
-      'inputs:', document.querySelectorAll('input').length,
-      'buttons:', document.querySelectorAll('button').length,
-      'forms:', document.querySelectorAll('form').length);
+    console.log('[BUNDLER] Form elements: inputs=' + document.querySelectorAll('input').length + ', buttons=' + document.querySelectorAll('button').length + ', forms=' + document.querySelectorAll('form').length);
 
     // Fallback: If no form elements rendered, try to force visibility of hidden elements
     var hiddenInputs = document.querySelectorAll('[style*="display:none"], [hidden]');

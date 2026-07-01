@@ -176,37 +176,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       window.Babel.transformScriptTags();
     }
 
-    // Debug: Log what's actually rendered in DOM after Babel transforms
-    console.log('[BUNDLER] Form elements: inputs=' + document.querySelectorAll('input').length + ', buttons=' + document.querySelectorAll('button').length + ', forms=' + document.querySelectorAll('form').length);
-
-    // Fallback: If no form elements rendered, try to force visibility of hidden elements
-    var hiddenInputs = document.querySelectorAll('[style*="display:none"], [hidden]');
-    if (hiddenInputs.length > 0) {
-      console.log('[BUNDLER] Found', hiddenInputs.length, 'hidden elements, showing them');
-      hiddenInputs.forEach(function(el) {
-        if (el.style) {
-          el.style.display = '';
-          el.removeAttribute('hidden');
-        }
-      });
-    }
-
-    // Catch and log React errors
-    window.addEventListener('error', function(e) {
-      console.error('[BUNDLER] React/Component Error:', e.message, e.error);
-    }, true);
-
-    // If form elements still don't exist after 2 seconds, log diagnostic
-    setTimeout(function() {
-      var inputs = document.querySelectorAll('input').length;
-      var buttons = document.querySelectorAll('button').length;
-      var forms = document.querySelectorAll('form').length;
-      console.log('[BUNDLER] After 2s - inputs:' + inputs + ', buttons:' + buttons + ', forms:' + forms);
-      if (inputs === 0 && buttons === 0 && forms === 0) {
-        console.warn('[BUNDLER] WARNING: No form elements found! React component likely not rendering form structure.');
-      }
-    }, 2000);
-
     // Desktop welcome layout: right-aligned logo & copy + button
     var __wlcLayout = document.createElement('style');
     __wlcLayout.textContent =
@@ -222,32 +191,24 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Fix EMPLOYEE NIK → EMPLOYEE ID with placeholder 730xxxxxx in Sign Up form
     var fixEmployeeId = function() {
-      var found = false;
       document.querySelectorAll('label, div, span').forEach(function(el) {
         if (el.textContent && el.textContent.includes('EMPLOYEE NIK')) {
           el.textContent = el.textContent.replace('EMPLOYEE NIK', 'EMPLOYEE ID');
-          found = true;
-          console.log('[fixEmployeeId] Replaced label:', el.textContent);
         }
       });
       document.querySelectorAll('input').forEach(function(input) {
         if (input.placeholder && input.placeholder.toLowerCase().includes('nik')) {
           input.placeholder = '730xxxxxx';
-          console.log('[fixEmployeeId] Updated placeholder:', input.id, input.placeholder);
-          found = true;
         }
       });
-      if (found) console.log('[fixEmployeeId] ✓ Fix applied');
     };
-    console.log('[fixEmployeeId] Starting...');
     fixEmployeeId();
-    setTimeout(function() { console.log('[fixEmployeeId] Retry at 500ms'); fixEmployeeId(); }, 500);
-    setTimeout(function() { console.log('[fixEmployeeId] Retry at 1500ms'); fixEmployeeId(); }, 1500);
+    setTimeout(fixEmployeeId, 500);
+    setTimeout(fixEmployeeId, 1500);
     var observer = new MutationObserver(fixEmployeeId);
     observer.observe(document.body, { subtree: true, childList: true });
-    console.log('[fixEmployeeId] Observer active');
 
-    // Fix Sign Up background to cover full viewport + force show form elements
+    // Fix Sign Up background to cover full viewport
     var __signupBgFix = document.createElement('style');
     __signupBgFix.textContent =
       'body { background: linear-gradient(135deg, #F4F6FA 0%, #E8ECFA 50%, #DFE5F5 100%) !important; min-height: 100vh !important; }' +
@@ -255,10 +216,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       '[class*="signup"] { background: transparent !important; }' +
       '[class*="register"] { background: transparent !important; }' +
       '[role="main"] { background: transparent !important; min-height: 100vh !important; }' +
-      'html { height: 100% !important; }' +
-      'input, button, textarea, select { display: block !important; visibility: visible !important; opacity: 1 !important; }' +
-      '[style*="display:none"] { display: block !important; visibility: visible !important; }' +
-      '[hidden] { display: block !important; visibility: visible !important; }';
+      'html { height: 100% !important; }';
     document.head.appendChild(__signupBgFix);
     // Hide duplicate NIK/Gender fields in profile completion form
     var __profileFormFix = document.createElement('style');

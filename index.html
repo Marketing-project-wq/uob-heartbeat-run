@@ -191,6 +191,22 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
     }
 
+    // Catch and log React errors
+    window.addEventListener('error', function(e) {
+      console.error('[BUNDLER] React/Component Error:', e.message, e.error);
+    }, true);
+
+    // If form elements still don't exist after 2 seconds, log diagnostic
+    setTimeout(function() {
+      var inputs = document.querySelectorAll('input').length;
+      var buttons = document.querySelectorAll('button').length;
+      var forms = document.querySelectorAll('form').length;
+      console.log('[BUNDLER] After 2s - inputs:' + inputs + ', buttons:' + buttons + ', forms:' + forms);
+      if (inputs === 0 && buttons === 0 && forms === 0) {
+        console.warn('[BUNDLER] WARNING: No form elements found! React component likely not rendering form structure.');
+      }
+    }, 2000);
+
     // Desktop welcome layout: right-aligned logo & copy + button
     var __wlcLayout = document.createElement('style');
     __wlcLayout.textContent =

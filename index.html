@@ -161,22 +161,30 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Fix EMPLOYEE NIK → EMPLOYEE ID with placeholder 730xxxxxx in Sign Up form
     var fixEmployeeId = function() {
+      var found = false;
       document.querySelectorAll('label, div, span').forEach(function(el) {
         if (el.textContent && el.textContent.includes('EMPLOYEE NIK')) {
           el.textContent = el.textContent.replace('EMPLOYEE NIK', 'EMPLOYEE ID');
+          found = true;
+          console.log('[fixEmployeeId] Replaced label:', el.textContent);
         }
       });
       document.querySelectorAll('input').forEach(function(input) {
         if (input.placeholder && input.placeholder.toLowerCase().includes('nik')) {
           input.placeholder = '730xxxxxx';
+          console.log('[fixEmployeeId] Updated placeholder:', input.id, input.placeholder);
+          found = true;
         }
       });
+      if (found) console.log('[fixEmployeeId] ✓ Fix applied');
     };
+    console.log('[fixEmployeeId] Starting...');
     fixEmployeeId();
-    setTimeout(fixEmployeeId, 500);
-    setTimeout(fixEmployeeId, 1500);
+    setTimeout(function() { console.log('[fixEmployeeId] Retry at 500ms'); fixEmployeeId(); }, 500);
+    setTimeout(function() { console.log('[fixEmployeeId] Retry at 1500ms'); fixEmployeeId(); }, 1500);
     var observer = new MutationObserver(fixEmployeeId);
     observer.observe(document.body, { subtree: true, childList: true });
+    console.log('[fixEmployeeId] Observer active');
 
     // Fix Sign Up background to cover full viewport
     var __signupBgFix = document.createElement('style');

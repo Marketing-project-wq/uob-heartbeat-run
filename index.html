@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     observer.observe(document.body, { subtree: true, childList: true });
     console.log('[fixEmployeeId] Observer active');
 
-    // Fix Sign Up background to cover full viewport
+    // Fix Sign Up background to cover full viewport + force show form elements
     var __signupBgFix = document.createElement('style');
     __signupBgFix.textContent =
       'body { background: linear-gradient(135deg, #F4F6FA 0%, #E8ECFA 50%, #DFE5F5 100%) !important; min-height: 100vh !important; }' +
@@ -255,9 +255,11 @@ document.addEventListener('DOMContentLoaded', async function() {
       '[class*="signup"] { background: transparent !important; }' +
       '[class*="register"] { background: transparent !important; }' +
       '[role="main"] { background: transparent !important; min-height: 100vh !important; }' +
-      'html { height: 100% !important; }';
+      'html { height: 100% !important; }' +
+      'input, button, textarea, select { display: block !important; visibility: visible !important; opacity: 1 !important; }' +
+      '[style*="display:none"] { display: block !important; visibility: visible !important; }' +
+      '[hidden] { display: block !important; visibility: visible !important; }';
     document.head.appendChild(__signupBgFix);
-
     // Hide duplicate NIK/Gender fields in profile completion form
     var __profileFormFix = document.createElement('style');
     __profileFormFix.textContent =

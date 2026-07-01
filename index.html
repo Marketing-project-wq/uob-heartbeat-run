@@ -141,8 +141,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     // DOMParser/replaceWith are inert per spec — re-create each with
     // createElement so they execute, awaiting onload for src scripts to
     // preserve ordering (React before ReactDOM before Babel before text/babel).
-    const doc = new DOMParser().parseFromString(template, 'text/html');
-    document.documentElement.replaceWith(doc.documentElement);
+    try {
+      const doc = new DOMParser().parseFromString(template, 'text/html');
+      if (!doc || !doc.documentElement) {
+        throw new Error('DOMParser failed to parse template');
+      }
+      document.documentElement.replaceWith(doc.documentElement);
+    } catch (parseErr) {
+      console.error('[BUNDLER] Template parsing error:', parseErr);
+      setStatus('Error: template parsing failed');
+      throw parseErr;
+    }
     const dead = Array.from(document.scripts);
     for (const old of dead) {
       const s = document.createElement('script');
@@ -165,6 +174,24 @@ document.addEventListener('DOMContentLoaded', async function() {
     // which fired before we swapped the document. Trigger manually if present.
     if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
       window.Babel.transformScriptTags();
+    }
+
+    // Debug: Log what's actually rendered in DOM after Babel transforms
+    console.log('[BUNDLER] After Babel transform - Form check:',
+      'inputs:', document.querySelectorAll('input').length,
+      'buttons:', document.querySelectorAll('button').length,
+      'forms:', document.querySelectorAll('form').length);
+
+    // Fallback: If no form elements rendered, try to force visibility of hidden elements
+    var hiddenInputs = document.querySelectorAll('[style*="display:none"], [hidden]');
+    if (hiddenInputs.length > 0) {
+      console.log('[BUNDLER] Found', hiddenInputs.length, 'hidden elements, showing them');
+      hiddenInputs.forEach(function(el) {
+        if (el.style) {
+          el.style.display = '';
+          el.removeAttribute('hidden');
+        }
+      });
     }
 
     // Desktop welcome layout: right-aligned logo & copy + button

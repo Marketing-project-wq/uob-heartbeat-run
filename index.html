@@ -242,7 +242,32 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
 
-  } catch (err) {
+  
+    
+    // Fix EMPLOYEE NIK label to EMPLOYEE ID with placeholder format
+    var __employeeIdFix = document.createElement('style');
+    __employeeIdFix.textContent = 'input[placeholder*="employee NIK"] { display: none !important; }';
+    document.head.appendChild(__employeeIdFix);
+    
+    setTimeout(function() {
+      // Replace all labels with "EMPLOYEE NIK" to "EMPLOYEE ID"
+      var labels = document.querySelectorAll('label');
+      labels.forEach(function(label) {
+        if (label.textContent.includes('EMPLOYEE NIK')) {
+          label.textContent = label.textContent.replace('EMPLOYEE NIK', 'EMPLOYEE ID');
+        }
+      });
+      
+      // Replace all placeholders with "employee NIK" to "730xxxxxx"
+      var inputs = document.querySelectorAll('input');
+      inputs.forEach(function(input) {
+        if (input.placeholder.toLowerCase().includes('employee nik')) {
+          input.placeholder = '730xxxxxx';
+        }
+      });
+    }, 500);
+
+    } catch (err) {
     setStatus('Error unpacking: ' + err.message);
     console.error('Bundle unpack error:', err);
   }

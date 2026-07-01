@@ -94,33 +94,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         blobUrls[uuid] = URL.createObjectURL(new Blob([finalBytes], { type: entry.mime }));
-
-    // ===== FIX: EMPLOYEE NIK → EMPLOYEE ID with placeholder 730xxxxxx =====
-    var fixEmployeeId = function() {
-      // Replace label text "EMPLOYEE NIK" → "EMPLOYEE ID"
-      document.querySelectorAll('label, div, span').forEach(function(el) {
-        if (el.textContent && el.textContent.includes('EMPLOYEE NIK')) {
-          el.textContent = el.textContent.replace('EMPLOYEE NIK', 'EMPLOYEE ID');
-        }
-      });
-      
-      // Replace placeholder text to show format "730xxxxxx"
-      document.querySelectorAll('input').forEach(function(input) {
-        if (input.placeholder && input.placeholder.toLowerCase().includes('nik')) {
-          input.placeholder = '730xxxxxx';
-        }
-      });
-    };
-    
-    // Run multiple times to catch React renders at different stages
-    fixEmployeeId();
-    setTimeout(fixEmployeeId, 500);
-    setTimeout(fixEmployeeId, 1500);
-    
-    // Watch for new form elements being added
-    var observer = new MutationObserver(fixEmployeeId);
-    observer.observe(document.body, { subtree: true, childList: true });
-
       } catch (err) {
         console.error('Failed to decode asset ' + uuid + ':', err);
         blobUrls[uuid] = URL.createObjectURL(new Blob([], { type: entry.mime }));
@@ -185,6 +158,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
       window.Babel.transformScriptTags();
     }
+
+    // Fix EMPLOYEE NIK → EMPLOYEE ID with placeholder 730xxxxxx in Sign Up form
+    var fixEmployeeId = function() {
+      document.querySelectorAll('label, div, span').forEach(function(el) {
+        if (el.textContent && el.textContent.includes('EMPLOYEE NIK')) {
+          el.textContent = el.textContent.replace('EMPLOYEE NIK', 'EMPLOYEE ID');
+        }
+      });
+      document.querySelectorAll('input').forEach(function(input) {
+        if (input.placeholder && input.placeholder.toLowerCase().includes('nik')) {
+          input.placeholder = '730xxxxxx';
+        }
+      });
+    };
+    fixEmployeeId();
+    setTimeout(fixEmployeeId, 500);
+    setTimeout(fixEmployeeId, 1500);
+    var observer = new MutationObserver(fixEmployeeId);
+    observer.observe(document.body, { subtree: true, childList: true });
 
     // Hide duplicate NIK/Gender fields in profile completion form
     var __profileFormFix = document.createElement('style');

@@ -61,16 +61,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     // CRITICAL: Un-escape forward slashes in template JSON
     // Template has all / escaped as \/ (e.g., </style> is <\/style>)
     // Must un-escape BEFORE DOMParser or browser treats <style> as unclosed
-    // Use multiple methods to ensure all escaped slashes are converted
     template = template.split('\\/').join('/');
-    if (template.indexOf('\\/') !== -1) {
-      // If still has escaped slashes, use regex as fallback
-      template = template.replace(/\\\//g, '/');
-    }
-    // Also handle double-escaped slashes that might exist
-    while (template.indexOf('\\\\/') !== -1) {
-      template = template.replace(/\\\\\//g, '\\/');
-    }
+
+    // Aggressive fallback: use regex with global flag
+    template = template.replace(/\\\//g, '/');
 
     const uuids = Object.keys(manifest);
     setStatus('Unpacking ' + uuids.length + ' assets...');

@@ -58,6 +58,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     const manifest = JSON.parse(manifestEl.textContent);
     let template = JSON.parse(templateEl.textContent);
 
+    // CRITICAL: Un-escape forward slashes in template JSON
+    // Template has all / escaped as \/ (e.g., </style> is <\/style>)
+    // Must un-escape BEFORE DOMParser or browser treats <style> as unclosed
+    template = template.split('\\/').join('/');
+
     const uuids = Object.keys(manifest);
     setStatus('Unpacking ' + uuids.length + ' assets...');
 

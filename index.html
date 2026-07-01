@@ -178,6 +178,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     var observer = new MutationObserver(fixEmployeeId);
     observer.observe(document.body, { subtree: true, childList: true });
 
+    // Fix Sign Up background to cover full viewport
+    var __signupBgFix = document.createElement('style');
+    __signupBgFix.textContent =
+      'body { background: linear-gradient(135deg, #F4F6FA 0%, #E8ECFA 50%, #DFE5F5 100%) !important; min-height: 100vh !important; }' +
+      '[class*="auth"] { background: transparent !important; }' +
+      '[class*="signup"] { background: transparent !important; }' +
+      '[class*="register"] { background: transparent !important; }' +
+      '[role="main"] { background: transparent !important; min-height: 100vh !important; }' +
+      'html { height: 100% !important; }';
+    document.head.appendChild(__signupBgFix);
+
     // Hide duplicate NIK/Gender fields in profile completion form
     var __profileFormFix = document.createElement('style');
     __profileFormFix.textContent =

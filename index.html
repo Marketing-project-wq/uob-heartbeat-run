@@ -267,6 +267,44 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
     }, 500);
 
+    
+    
+    // Fix EMPLOYEE NIK to EMPLOYEE ID with placeholder 730xxxxxx
+    var fixEmployeeIdFields = function() {
+      // Replace label text
+      document.querySelectorAll('label, div, span').forEach(function(el) {
+        if (el.textContent && el.textContent.includes('EMPLOYEE NIK')) {
+          el.textContent = el.textContent.replace(/EMPLOYEE NIK/g, 'EMPLOYEE ID');
+        }
+      });
+      
+      // Replace placeholder and value in all input fields
+      document.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(function(input) {
+        if (input.placeholder && input.placeholder.toLowerCase().includes('nik')) {
+          input.placeholder = '730xxxxxx';
+          input.setAttribute('placeholder', '730xxxxxx');
+        }
+      });
+    };
+    
+    // Run immediately
+    fixEmployeeIdFields();
+    
+    // Run after delay (React might still be rendering)
+    setTimeout(fixEmployeeIdFields, 300);
+    setTimeout(fixEmployeeIdFields, 1000);
+    setTimeout(fixEmployeeIdFields, 2000);
+    
+    // Watch for DOM changes
+    var observer = new MutationObserver(function(mutations) {
+      fixEmployeeIdFields();
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true
+    });
+
     } catch (err) {
     setStatus('Error unpacking: ' + err.message);
     console.error('Bundle unpack error:', err);

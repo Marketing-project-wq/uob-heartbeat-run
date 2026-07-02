@@ -204,31 +204,31 @@ function SignUpScreen({ email, kcp, onCreate, onBack }) {
   const phoneOk = phoneDigits.length === 0 || phoneDigits.length >= 9; // opsional
   const valid = nameOk && nikOk && genderOk && phoneOk;
   const labelStyle = { fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12, color: 'var(--muted)', letterSpacing: 0.3, display: 'block', marginBottom: 6 };
-  const field = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--line)', borderRadius: 14, padding: '14px 16px', fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--ink)', outline: 'none', background: 'var(--bg)' };
-  const ro = { ...field, background: 'rgba(2,32,71,0.04)', color: 'var(--muted)', marginBottom: 16 };
+  const field = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--line)', borderRadius: 14, padding: '10px 14px', fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--ink)', outline: 'none', background: 'var(--bg)' };
+  const ro = { ...field, background: 'rgba(2,32,71,0.04)', color: 'var(--muted)', marginBottom: 10 };
   const submit = (e) => { e.preventDefault(); if (valid) onCreate({ name: name.trim(), phone: phone.trim(), nik: nik.trim(), gender: gender }); };
   return (
     <div style={AUTH_BG}><AuthBgLayer />
-      <form onSubmit={submit} autoComplete="on" style={AUTH_CARD}>
+      <form onSubmit={submit} autoComplete="on" style={{ ...AUTH_CARD, padding: 18 }}>
         <MiniLogo />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(244,37,60,0.1)', color: 'var(--red)', padding: '5px 11px', borderRadius: 9, margin: '18px auto 0', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5 }}>New here — create your account</div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 23, color: 'var(--ink)', letterSpacing: -0.5, textAlign: 'center', margin: '10px 0 4px' }}>Sign Up</h2>
-        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13.5, color: 'var(--muted)', textAlign: 'center', margin: '0 0 22px' }}>This email isn’t registered yet. Fill in your details to create an account.</p>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(244,37,60,0.1)', color: 'var(--red)', padding: '5px 11px', borderRadius: 9, margin: '10px auto 0', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5 }}>New here — create your account</div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: 'var(--ink)', letterSpacing: -0.5, textAlign: 'center', margin: '6px 0 3px' }}>Sign Up</h2>
+        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '0 0 14px' }}>This email isn’t registered yet. Fill in your details to create an account.</p>
 
         <label style={labelStyle}>EMAIL</label>
         <input value={email} readOnly style={ro} />
 
         <label htmlFor="su-name" style={labelStyle}>FULL NAME</label>
-        <input id="su-name" name="name" type="text" autoComplete="name" placeholder="Full name as per ID" value={name} onChange={(e) => setName(e.target.value)} style={{ ...field, marginBottom: 16 }} />
+        <input id="su-name" name="name" type="text" autoComplete="name" placeholder="Full name as per ID" value={name} onChange={(e) => setName(e.target.value)} style={{ ...field, marginBottom: 10 }} />
 
         <label htmlFor="su-nik" style={labelStyle}>EMPLOYEE NIK</label>
-        <input id="su-nik" name="nik" type="text" inputMode="numeric" placeholder="Your employee NIK" value={nik} onChange={(e) => setNik(e.target.value.replace(/[^0-9A-Za-z]/g, ''))} style={{ ...field, marginBottom: 16 }} />
+        <input id="su-nik" name="nik" type="text" inputMode="numeric" placeholder="Your employee NIK" value={nik} onChange={(e) => setNik(e.target.value.replace(/[^0-9A-Za-z]/g, ''))} style={{ ...field, marginBottom: 10 }} />
 
         <label style={labelStyle}>GENDER</label>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
           {['Male', 'Female'].map((g) => (
             <button type="button" key={g} onClick={() => setGender(g)} style={{
-              flex: 1, cursor: 'pointer', borderRadius: 14, padding: '13px 0', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 14,
+              flex: 1, cursor: 'pointer', borderRadius: 14, padding: '10px 0', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 14,
               border: gender === g ? '1.5px solid var(--blue)' : '1.5px solid var(--line)',
               background: gender === g ? 'rgba(0,96,192,0.08)' : 'var(--bg)', color: gender === g ? 'var(--blue)' : 'var(--muted)',
             }}>{g}</button>
@@ -239,7 +239,7 @@ function SignUpScreen({ email, kcp, onCreate, onBack }) {
         <input id="su-phone" name="tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="0812 3456 7890" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9+\s-]/g, ''))} style={{ ...field, marginBottom: 4 }} />
 
         <button type="submit" disabled={!valid} style={{
-          width: '100%', marginTop: 18, border: 'none', cursor: valid ? 'pointer' : 'not-allowed', borderRadius: 14, padding: '15px 0',
+          width: '100%', marginTop: 12, border: 'none', cursor: valid ? 'pointer' : 'not-allowed', borderRadius: 14, padding: '12px 0',
           background: valid ? 'var(--red)' : 'rgba(2,32,71,0.12)', color: valid ? '#fff' : 'var(--muted)',
           fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15.5, boxShadow: valid ? '0 10px 22px -8px rgba(244,37,60,0.5)' : 'none', transition: 'background .2s',
         }}>Create account</button>

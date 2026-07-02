@@ -35,10 +35,27 @@ function ProviderBtn({ provider, onClick }) {
 
 const AUTH_CARD = { width: '100%', maxWidth: 432, background: 'var(--card)', borderRadius: 28, border: '1px solid var(--line)', padding: 26, boxShadow: '0 24px 60px -28px rgba(2,32,71,0.3)' };
 const AUTH_BG = {
+  position: 'relative', isolation: 'isolate', overflow: 'hidden',
   minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 22px',
-  backgroundImage: `linear-gradient(180deg, rgba(244,247,252,0.30), rgba(244,247,252,0.55)), url(${window.asset('loginBg', 'assets/login-bg.png')})`,
-  backgroundSize: 'cover', backgroundPosition: 'center',
+  background: 'var(--blue-deep)',
 };
+
+// Full-bleed brand key visual behind the auth cards — landscape on desktop,
+// portrait on mobile — so the background always covers the whole viewport
+// (fixes the half-empty / washed-out area). Sits at z-index -1 so all the
+// in-flow card content paints above it without needing extra z-index.
+function AuthBgLayer() {
+  return (
+    <React.Fragment>
+      <picture>
+        <source media="(min-width: 900px)" srcSet={window.asset('loginBgWide', 'assets/login-bg-wide.png')} />
+        <img src={window.asset('loginBg', 'assets/login-bg.png')} alt="" aria-hidden="true"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', zIndex: -1 }} />
+      </picture>
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: -1, background: 'linear-gradient(180deg, rgba(244,247,252,0.12), rgba(244,247,252,0.34))' }} />
+    </React.Fragment>
+  );
+}
 
 function MiniLogo({ light }) {
   return (
@@ -151,7 +168,7 @@ function EmailScreen({ onSubmit, onBack }) {
   };
   const onFormSubmit = (e) => { e.preventDefault(); submit(); };
   return (
-    <div style={AUTH_BG}>
+    <div style={AUTH_BG}><AuthBgLayer />
       <form onSubmit={onFormSubmit} autoComplete="on" style={AUTH_CARD}>
         <MiniLogo />
         <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, color: 'var(--ink)', letterSpacing: -0.5, textAlign: 'center', margin: '20px 0 4px' }}>{returning ? 'Welcome Back' : 'Sign In or Register'}</h2>      <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13.5, color: 'var(--muted)', textAlign: 'center', margin: '0 0 24px' }}>{returning ? `Continue as ${last.name || last.email}` : 'Just your email to begin.'}</p>
@@ -191,7 +208,7 @@ function SignUpScreen({ email, kcp, onCreate, onBack }) {
   const ro = { ...field, background: 'rgba(2,32,71,0.04)', color: 'var(--muted)', marginBottom: 16 };
   const submit = (e) => { e.preventDefault(); if (valid) onCreate({ name: name.trim(), phone: phone.trim(), nik: nik.trim(), gender: gender }); };
   return (
-    <div style={AUTH_BG}>
+    <div style={AUTH_BG}><AuthBgLayer />
       <form onSubmit={submit} autoComplete="on" style={AUTH_CARD}>
         <MiniLogo />
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(244,37,60,0.1)', color: 'var(--red)', padding: '5px 11px', borderRadius: 9, margin: '18px auto 0', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5 }}>New here — create your account</div>
@@ -321,7 +338,7 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
   const resend = () => { onResend(); setDigits(Array(LEN).fill('')); setError(false); setSecs(30); refs.current[0] && refs.current[0].focus(); };
 
   return (
-    <div style={AUTH_BG}>
+    <div style={AUTH_BG}><AuthBgLayer />
       <div style={AUTH_CARD}>
         <MiniLogo />
         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(0,96,192,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '18px auto 0' }}>

@@ -178,7 +178,7 @@ function HomeScreen({ data, onLog, onConnect, onProfile, goTo, onEditGoal, onBel
       <div style={{ margin: '20px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>Recent Runs</span>
-          <button onClick={() => goTo('Progress')} style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--blue)' }}>See all</button>
+          <button onClick={() => goTo('Profile')} style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13, color: 'var(--blue)' }}>See all</button>
         </div>
         <div style={{ background: 'var(--card)', borderRadius: 20, border: '1px solid var(--line)', padding: '4px 16px' }}>
           {data.runs.slice(0, 3).map((r, i) => <RunRow key={i} run={r} first={i === 0} />)}

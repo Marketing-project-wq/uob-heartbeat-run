@@ -730,11 +730,12 @@ function OnboardingGate({ onComplete }) {
     setStep('welcomeback');
   };
 
-  // returning user (Strava + goals tersimpan) → langsung ke beranda, lewati goal setup
+  // Returning/existing account → langsung ke beranda, LEWATI walkthrough (intro).
+  // Walkthrough (FeatureIntro) hanya untuk akun BARU yang baru sign up.
   const afterWelcome = () => {
     const s = account && account.saved;
-    if (s && s.goalsSet) {
-      onComplete({ ...account, ...s, connected: !!s.stravaConnected, returning: true, goalsSet: true });
+    if ((account && account.existing) || (s && s.goalsSet)) {
+      onComplete({ ...account, ...(s || {}), connected: !!(s && s.stravaConnected), returning: true, goalsSet: true });
     } else {
       setStep('intro');
     }

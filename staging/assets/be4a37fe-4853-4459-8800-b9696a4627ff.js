@@ -985,6 +985,9 @@ function WebApp() {
     // mewarisi data lokal dari akun lain di perangkat ini.
     if (!p.existing && !p.returning) setExtra({ km: 0, runs: [], todayKm: 0, streakBonus: 0 });
     else if (saved && saved.extra) setExtra(saved.extra);
+    // Returning/existing account → jangan munculkan tur fitur ("walkthrough").
+    // Hanya akun baru yang belum pernah lihat yang mendapatkannya.
+    if (p.existing || p.returning) { try { localStorage.setItem('uz_tour_done_' + String(p.email || '').toLowerCase(), '1'); } catch (e) {} }
     setAuthed(true);
     if (window.UZSupaEnabled && window.UZSupa) {
       window.UZSupa.saveProfileBasic({ name: p.name, phone: p.phone, team: p.team, kcp: p.kcp, nik: p.nik, gender: p.gender }).catch(() => {});

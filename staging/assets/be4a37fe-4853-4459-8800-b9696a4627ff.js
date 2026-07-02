@@ -1193,14 +1193,9 @@ function WebApp() {
     return (<React.Fragment><OnboardingGate onComplete={handleComplete} />{tweaksPanel}</React.Fragment>);
   }
 
-  // Wajib isi gender, NIK (email = identitas login, selalu ada). User lama yang
-  // belum lengkap → diarahkan melengkapi dulu sebelum masuk app.
-  const _cpEmail = String((profile && profile.email) || '').trim();
-  const _cpGenderOk = !!profile && (profile.gender === 'Male' || profile.gender === 'Female');
-  const _cpNikOk = String((profile && profile.nik) || '').replace(/[^0-9A-Za-z]/g, '').length >= 4;
-  if (_cpEmail && (!_cpGenderOk || !_cpNikOk)) {
-    return (<React.Fragment><CompleteProfileGate profile={profile} email={_cpEmail} onSave={handleCompleteProfile} />{tweaksPanel}</React.Fragment>);
-  }
+  // Profile completion gate removed: NIK & gender are already collected during
+  // sign-up onboarding, so returning users are no longer asked to fill them
+  // again here — they go straight into the app after login.
 
   return (
     <div className="app-web">

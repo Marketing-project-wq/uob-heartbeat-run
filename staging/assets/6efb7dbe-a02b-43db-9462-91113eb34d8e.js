@@ -49,7 +49,7 @@ function sameKcp(a, b) {
 // Bagikan link app ke WhatsApp / share sheet HP untuk mengajak rekan.
 function shareInvite(meKcp) {
   const url = (typeof window !== 'undefined' && window.location && window.location.origin) || 'https://uob-heartbeat-run.20fit.id';
-  const text = `Join me on Road to UOB Heartbeat Run 🏃 — log your runs & climb the leaderboard${meKcp ? ' with ' + meKcp : ''}! ${url}`;
+  const text = `Join me on Road to UOB Heartbeat Run 🏃 — log your runs & climb the leaderboard! ${url}`;
   try { if (navigator.share) { navigator.share({ title: 'Road to UOB Heartbeat Run', text: text, url: url }).catch(function () {}); return; } } catch (e) {}
   try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); } catch (e) {}
 }

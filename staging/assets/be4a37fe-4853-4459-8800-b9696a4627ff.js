@@ -551,7 +551,7 @@ function WebProfile({ data, onConnect, onLogout, onEditGoal, onSaveProfile, team
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--ink)' }}>{data.userName}</div>
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{[data.team, data.kcp].filter(Boolean).join(' · ') || 'Tap Edit to add your branch'}</div>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{data.team || ''}</div>
           </div>
           {!editing && (
             <button onClick={() => setEditing(true)} style={{ border: 'none', background: 'rgba(0,96,192,0.08)', cursor: 'pointer', borderRadius: 10, padding: '8px 13px', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5, color: 'var(--blue)' }}>

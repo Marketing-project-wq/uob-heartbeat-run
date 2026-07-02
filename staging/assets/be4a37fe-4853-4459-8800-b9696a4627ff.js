@@ -519,14 +519,15 @@ function WebProfile({ data, onConnect, onLogout, onEditGoal, onSaveProfile, team
   const sortedRuns = React.useMemo(() => (data.runs || []).slice().sort((a, b) => new Date(b.recordedAt || 0) - new Date(a.recordedAt || 0)), [data.runs]);
   React.useEffect(() => { setShowCount(5); }, [data.runs && data.runs.length]);
   const [pName, setPName] = React.useState(data.userName);
-  const [pKcp, setPKcp] = React.useState(data.kcp || '');
+  const [pGender, setPGender] = React.useState(data.gender || '');
+  const [pPhone, setPPhone] = React.useState(data.phone || '');
   const avatarRef = React.useRef(null);
-  React.useEffect(() => { setPName(data.userName); setPKcp(data.kcp || ''); }, [data.userName, data.kcp]);
+  React.useEffect(() => { setPName(data.userName); setPGender(data.gender || ''); setPPhone(data.phone || ''); }, [data.userName, data.gender, data.phone]);
   const Av = ({ size }) => data.avatarUrl
     ? <img src={data.avatarUrl} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
     : <WAvatar name={pName || data.userName} size={size} />;
   const efield = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--line)', borderRadius: 12, padding: '11px 13px', fontFamily: 'var(--font-ui)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', background: 'var(--bg)' };
-  const saveEdit = () => { if (pName.trim().length < 2) return; if (onSaveProfile) onSaveProfile({ name: pName.trim(), kcp: pKcp.trim() }); setEditing(false); };
+  const saveEdit = () => { if (pName.trim().length < 2) return; if (onSaveProfile) onSaveProfile({ name: pName.trim(), gender: pGender, phone: pPhone.trim() }); setEditing(false); };
   const row = (icon, title, detail, color) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 0', borderTop: '1px solid var(--line)' }}>
       <div style={{ width: 34, height: 34, borderRadius: 10, background: (color || 'var(--blue)') + '1A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -561,10 +562,26 @@ function WebProfile({ data, onConnect, onLogout, onEditGoal, onSaveProfile, team
         </div>
         {editing && (
           <div style={{ marginTop: 14, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: 16 }}>
+            <label style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5, color: 'var(--muted)', letterSpacing: 0.3 }}>EMAIL <span style={{ fontWeight: 600, textTransform: 'none' }}>(can’t be changed)</span></label>
+            <input value={data.email || ''} readOnly disabled style={{ ...efield, margin: '6px 0 12px', background: 'rgba(2,32,71,0.04)', color: 'var(--muted)' }} />
+            <label style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5, color: 'var(--muted)', letterSpacing: 0.3 }}>EMPLOYEE ID <span style={{ fontWeight: 600, textTransform: 'none' }}>(can’t be changed)</span></label>
+            <input value={data.nik || ''} readOnly disabled style={{ ...efield, margin: '6px 0 12px', background: 'rgba(2,32,71,0.04)', color: 'var(--muted)' }} />
             <label style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5, color: 'var(--muted)', letterSpacing: 0.3 }}>FULL NAME</label>
             <input value={pName} onChange={(e) => setPName(e.target.value)} placeholder="Your name" style={{ ...efield, margin: '6px 0 12px' }} />
+            <label style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5, color: 'var(--muted)', letterSpacing: 0.3 }}>GENDER</label>
+            <div style={{ display: 'flex', gap: 10, margin: '6px 0 12px' }}>
+              {['Male', 'Female'].map((g) => (
+                <button type="button" key={g} onClick={() => setPGender(g)} style={{
+                  flex: 1, cursor: 'pointer', borderRadius: 12, padding: '10px 0', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13.5,
+                  border: pGender === g ? '1.5px solid var(--blue)' : '1.5px solid var(--line)',
+                  background: pGender === g ? 'rgba(0,96,192,0.08)' : 'var(--bg)', color: pGender === g ? 'var(--blue)' : 'var(--muted)',
+                }}>{g}</button>
+              ))}
+            </div>
+            <label style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5, color: 'var(--muted)', letterSpacing: 0.3 }}>PHONE NUMBER <span style={{ fontWeight: 600, textTransform: 'none' }}>(optional)</span></label>
+            <input value={pPhone} onChange={(e) => setPPhone(e.target.value.replace(/[^0-9+\s-]/g, ''))} placeholder="0812 3456 7890" inputMode="tel" style={{ ...efield, margin: '6px 0 12px' }} />
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setEditing(false); setPName(data.userName); setPKcp(data.kcp || ''); }} style={{ flex: 1, border: '1px solid var(--line)', background: 'var(--card)', cursor: 'pointer', borderRadius: 12, padding: '12px 0', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: 'var(--muted)' }}>Cancel</button>
+              <button onClick={() => { setEditing(false); setPName(data.userName); setPGender(data.gender || ''); setPPhone(data.phone || ''); }} style={{ flex: 1, border: '1px solid var(--line)', background: 'var(--card)', cursor: 'pointer', borderRadius: 12, padding: '12px 0', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: 'var(--muted)' }}>Cancel</button>
               <button onClick={saveEdit} style={{ flex: 1, border: 'none', cursor: 'pointer', borderRadius: 12, padding: '12px 0', background: 'var(--blue)', color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14 }}>Save</button>
             </div>
           </div>
@@ -790,7 +807,7 @@ function WebApp() {
     totalKm, targetKm, weekKm, paceNote: 'On track with your plan',
     watchConnected, watchBrand, week,
     userName, avatarUrl: (profile && profile.avatarUrl) || null, team: (profile && profile.team) || '', cat: (profile && profile.cat) || '10K',
-    kcp: (profile && profile.kcp) || '', email: (profile && profile.email) || '', gender: (profile && profile.gender) || '', nik: (profile && profile.nik) || '', meId: meUserId,
+    kcp: (profile && profile.kcp) || '', email: (profile && profile.email) || '', gender: (profile && profile.gender) || '', nik: (profile && profile.nik) || '', phone: (profile && profile.phone) || '', meId: meUserId,
     sleepLog, waterLog, onLogSleep: handleLogSleep, onSetWater: handleSetWater,
     myTodayKm: extra.todayKm,
     runs: [...extra.runs, ...W_SEED_RUNS],
@@ -911,8 +928,12 @@ function WebApp() {
     else alert('Could not upload the photo. Make sure the "avatars" storage bucket is set up in Supabase (supabase-avatars.sql).');
   };
   const handleSaveProfile = (pp) => {
-    setProfile((p) => ({ ...(p || {}), name: pp.name || (p && p.name), kcp: (pp.kcp != null ? pp.kcp : (p && p.kcp)) }));
-    if (window.UZSupaEnabled && window.UZSupa) window.UZSupa.saveProfileBasic({ name: pp.name, kcp: pp.kcp }).catch((e) => console.warn('saveProfile', e && e.message));
+    setProfile((p) => ({ ...(p || {}),
+      name: pp.name || (p && p.name),
+      gender: (pp.gender != null ? pp.gender : (p && p.gender)),
+      phone: (pp.phone != null ? pp.phone : (p && p.phone)) }));
+    // Persist name/gender/phone only — email & NIK are identity fields, not editable.
+    if (window.UZSupaEnabled && window.UZSupa) window.UZSupa.saveProfileBasic({ name: pp.name, gender: pp.gender, phone: pp.phone }).catch((e) => console.warn('saveProfile', e && e.message));
   };
   // Lengkapi profil wajib (NIK + gender) untuk user lama yang datanya kosong.
   const handleCompleteProfile = (p) => {

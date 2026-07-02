@@ -1,18 +1,18 @@
 // Un-bundler — turns the packed root index.html back into an editable static
-// site under src/. Run from the repo root:  node tools/unbundle.mjs
+// site under staging/. Run from the repo root:  node tools/unbundle.mjs
 //
 // The packed index.html hides the real app inside a JSON-escaped "template"
 // blob plus 65 base64 assets. Editing it by hand destroys formatting. This
 // script replays what the runtime bundler did (un-escape, decode assets, wire
 // references) but writes real files, so the app becomes normal editable HTML +
-// assets. See src/README.md.
+// assets. See staging/README.md.
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 
 const ROOT = process.cwd();
 const SRC = process.argv[2] || path.join(ROOT, 'index.html');
-const OUT = process.argv[3] || path.join(ROOT, 'src');
+const OUT = process.argv[3] || path.join(ROOT, 'staging');
 const PATCHES = process.argv[4] || path.join(ROOT, 'tools', 'runtime-patches.js');
 
 const html = fs.readFileSync(SRC, 'utf8');

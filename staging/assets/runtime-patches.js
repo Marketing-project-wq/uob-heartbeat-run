@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var __wlcLayout = document.createElement('style');
     __wlcLayout.textContent =
       '@media (min-width:900px){' +
-      '.wlc-root.wlc-root{align-items:flex-end !important;justify-content:flex-start !important;gap:0 !important;padding-top:0 !important;max-width:none !important;}' +
+      '.wlc-root.wlc-root{align-items:flex-end !important;justify-content:center !important;gap:0 !important;padding-top:0 !important;max-width:none !important;}' +
       '.wlc-root.wlc-root > div[style*="flex: 1"]{display:none !important;}' +
       '.wlc-logo.wlc-logo{order:1 !important;width:auto !important;align-self:flex-end !important;margin:6vh clamp(24px,7vw,120px) 18px 0 !important;}' +
       '.wlc-cta.wlc-cta{order:2 !important;align-self:flex-end !important;text-align:right !important;max-width:560px !important;margin-right:clamp(24px,7vw,120px) !important;}' +

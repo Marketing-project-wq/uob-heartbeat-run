@@ -700,7 +700,14 @@ function OnboardingGate({ onComplete }) {
         const err = inRes.error || {};
         const existsUnconfirmed = err.code === 'email_not_confirmed' || /not confirmed/i.test(err.message || '');
         if (existsUnconfirmed) { otpFallback(); return; }
-        // 2) Benar-benar belum terdaftar → ARAHKAN KE SIGN UP (tak bisa login).
+        // signInPassword gagal & BUKAN "belum dikonfirmasi". Bisa jadi AKUN LAMA
+        // yang belum punya password turunan → harus LOGIN (via OTP sekali, lalu
+        // password turunan di-set → berikutnya tanpa OTP), BUKAN daftar ulang.
+        // Kirim OTP hanya kalau email memang SUDAH terdaftar.
+        var reg = 'notfound';
+        try { reg = await window.UZSupa.sendOtpIfRegistered(em); } catch (e2) {}
+        if (reg === 'sent') { setAccount({ ...baseAcc, existing: true, saved: null }); setOtp(genOtp()); setStep('otp'); return; }
+        // Benar-benar belum terdaftar → daftar akun baru.
         setAccount({ ...baseAcc, existing: false, saved: null });
         setStep('signup'); return;
       } catch (e) { setAccount({ ...baseAcc, existing: false, saved: null }); setStep('signup'); return; }

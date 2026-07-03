@@ -93,6 +93,17 @@
       var r = await sb.auth.signInWithPassword({ email: (email || '').trim(), password: this._derivePw(email) });
       return { ok: !r.error, error: r.error || null, data: r.data || null };
     },
+    // Kirim OTP HANYA kalau email SUDAH terdaftar (shouldCreateUser:false → tak
+    // membuat user baru). Dipakai untuk AKUN LAMA yang belum punya password
+    // turunan: mereka cukup LOGIN via OTP sekali (lalu password turunan di-set →
+    // login berikutnya tanpa OTP), TIDAK perlu daftar ulang.
+    // return: 'sent' (terdaftar, OTP terkirim) | 'notfound' (belum terdaftar).
+    async sendOtpIfRegistered(email) {
+      try {
+        var r = await sb.auth.signInWithOtp({ email: (email || '').trim(), options: { shouldCreateUser: false } });
+        return r.error ? 'notfound' : 'sent';
+      } catch (e) { return 'notfound'; }
+    },
     // DAFTAR akun baru TANPA OTP (langsung login). Dipakai untuk sign-up
     // tanpa friction. needsConfirm=true → "Confirm email" masih ON di Supabase
     // (tak ada sesi) → app jatuh ke OTP sebagai gantinya.

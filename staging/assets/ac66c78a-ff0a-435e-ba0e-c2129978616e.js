@@ -135,6 +135,28 @@
       catch (e) { return false; }
     },
 
+    // Buat akun UOB TANPA email & TANPA mengubah setting project (project ini
+    // dipakai bersama produk lain, jadi "Confirm email" TIDAK boleh dimatikan).
+    // Edge Function `uob-signup` memakai admin API (email_confirm:true) → user
+    // langsung terkonfirmasi tanpa email; client tinggal signInPassword() untuk
+    // dapat sesi. Kode 6 digit ditampilkan di layar (bukan email).
+    // return: true kalau akun sudah siap dipakai login.
+    async createUobAccount(email, meta) {
+      try {
+        var res = await fetch(cfg.url + '/functions/v1/uob-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.anonKey, 'apikey': cfg.anonKey },
+          body: JSON.stringify({
+            email: email,
+            name: meta && meta.name, phone: meta && meta.phone,
+            nik: meta && meta.nik, gender: meta && meta.gender,
+          }),
+        });
+        var j = await res.json().catch(function () { return null; });
+        return !!(j && j.ok);
+      } catch (e) { return false; }
+    },
+
     // ── Profil + Goal (uob_users) ─────────────────────────
     async getProfile() {
       var u = await currentUser(); if (!u) return null;

@@ -800,12 +800,17 @@ function OnboardingGate({ onComplete }) {
         // langsung masuk (riwayat lari otomatis kembali) tanpa onboarding ulang.
         if (live && window.UZSupa) {
           if (screenCode) {
-            // Kode diverifikasi LOKAL (tampil di layar) → belum ada sesi. Buat akun +
-            // sesi asli via derived password. Butuh "Confirm email" OFF di Supabase.
-            let up = { ok: false };
-            try { up = await window.UZSupa.signUpPassword(email, { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender }); } catch (e) {}
-            if (!up.ok) {
-              return { ok: false, message: 'Akun belum bisa dibuat. Pastikan "Confirm email" DIMATIKAN di Supabase (Authentication → Sign In / Providers → Email), lalu coba lagi.' };
+            // Kode diverifikasi LOKAL (tampil di layar) → belum ada sesi. Buat akun
+            // pre-konfirmasi via Edge Function `uob-signup` (TANPA email & TANPA ubah
+            // "Confirm email" — project ini dipakai bersama produk lain), lalu login
+            // pakai password turunan untuk dapat sesi asli.
+            let ok = false;
+            try {
+              const made = await window.UZSupa.createUobAccount(email, { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender });
+              if (made) { const si = await window.UZSupa.signInPassword(email); ok = !!(si && si.ok); }
+            } catch (e) {}
+            if (!ok) {
+              return { ok: false, message: 'Gagal membuat akun. Pastikan Edge Function "uob-signup" sudah di-deploy di Supabase, lalu coba lagi.' };
             }
           } else {
             // Set password turunan sekarang (sesi aktif) → login lain kali TANPA OTP.

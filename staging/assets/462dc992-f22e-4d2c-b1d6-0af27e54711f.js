@@ -192,7 +192,7 @@ function EmailScreen({ onSubmit, onBack }) {
 }
 
 // ── Sign Up page (email belum terdaftar → wajib daftar dulu) ──
-function SignUpScreen({ email, kcp, onCreate, onBack }) {
+function SignUpScreen({ email, kcp, error, onCreate, onBack }) {
   const [name, setName] = React.useState('');
   const [nik, setNik] = React.useState('');
   const [gender, setGender] = React.useState('');
@@ -237,6 +237,10 @@ function SignUpScreen({ email, kcp, onCreate, onBack }) {
 
         <label htmlFor="su-phone" style={labelStyle}>PHONE NUMBER <span style={{ fontWeight: 600, textTransform: 'none' }}>(optional)</span></label>
         <input id="su-phone" name="tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="0812 3456 7890" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9+\s-]/g, ''))} style={{ ...field, marginBottom: 4 }} />
+
+        {error && (
+          <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 12.5, color: 'var(--red)', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.45 }}>{error}</div>
+        )}
 
         <button type="submit" disabled={!valid} style={{
           width: '100%', marginTop: 12, border: 'none', cursor: valid ? 'pointer' : 'not-allowed', borderRadius: 14, padding: '12px 0',
@@ -289,6 +293,7 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
   const [error, setError] = React.useState(false);
   const [verifying, setVerifying] = React.useState(false);
   const [secs, setSecs] = React.useState(30);
+  const [resendMsg, setResendMsg] = React.useState('');
   const refs = React.useRef([]);
 
   React.useEffect(() => { refs.current[0] && refs.current[0].focus(); }, []);
@@ -335,7 +340,12 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
     } else if (e.key === 'ArrowLeft' && i > 0) refs.current[i - 1].focus();
     else if (e.key === 'ArrowRight' && i < LEN - 1) refs.current[i + 1].focus();
   };
-  const resend = () => { onResend(); setDigits(Array(LEN).fill('')); setError(false); setSecs(30); refs.current[0] && refs.current[0].focus(); };
+  const resend = async () => {
+    setResendMsg(''); setDigits(Array(LEN).fill('')); setError(false); setSecs(30);
+    refs.current[0] && refs.current[0].focus();
+    try { const r = await onResend(); if (r && r.ok === false && r.message) setResendMsg(r.message); }
+    catch (e) { setResendMsg('Gagal mengirim ulang kode. Coba lagi.'); }
+  };
 
   return (
     <div style={AUTH_BG}><AuthBgLayer />
@@ -391,6 +401,10 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
             <button onClick={resend} style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5, color: 'var(--blue)' }}>Resend code</button>
           )}
         </div>
+
+        {resendMsg && (
+          <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginTop: 8, lineHeight: 1.45 }}>{resendMsg}</div>
+        )}
       </div>
       <button onClick={onBack} style={{ marginTop: 18, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13.5, color: 'var(--muted)' }}>← Change details</button>
     </div>
@@ -671,8 +685,24 @@ function OnboardingGate({ onComplete }) {
   const [account, setAccount] = React.useState(null);
   const [otp, setOtp] = React.useState('');
   const [pendingGoals, setPendingGoals] = React.useState(null);
+  const [signupErr, setSignupErr] = React.useState('');
   const live = !!window.UZSupaEnabled;
   const genOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+  // Ubah error kirim OTP jadi pesan yang bisa dibaca user (bukan gagal diam-diam).
+  const otpErrMsg = (e) => {
+    const m = (e && (e.message || e.error_description || e.msg)) || '';
+    if (/60 seconds|only request|rate limit|too many|after \d+ sec/i.test(m)) return 'Kode baru saja dikirim — cek email kamu (termasuk Spam/Promotions). Bisa minta ulang dalam 1 menit.';
+    if (/smtp|sending.*email|error sending|confirmation email/i.test(m)) return 'Sistem gagal mengirim email kode. Coba lagi beberapa saat lagi.';
+    return m ? ('Gagal mengirim kode: ' + m) : 'Gagal mengirim kode verifikasi. Coba lagi.';
+  };
+  // Kirim TEPAT SATU email OTP (membuat akun bila perlu). Kembalikan {ok, message}
+  // supaya kegagalan bisa DITAMPILKAN, bukan ditelan .catch(()=>{}) seperti sebelumnya.
+  const sendCode = async (em, meta) => {
+    if (!(live && window.UZSupa)) return { ok: true };
+    try { await window.UZSupa.sendOtp(em, meta); return { ok: true }; }
+    catch (e) { return { ok: false, message: otpErrMsg(e) }; }
+  };
 
   const handleSubmit = async ({ email: em, name, phone, kcp }) => {
     setEmail(em);
@@ -724,15 +754,21 @@ function OnboardingGate({ onComplete }) {
   const handleCreate = async ({ name: nm, phone: ph, nik, gender }) => {
     const em = (account && account.email) || email;
     const kcp = (account && account.kcp) || '';
+    setSignupErr('');
     setAccount((a) => ({ ...(a || {}), name: nm, phone: ph, nik: nik, gender: gender, existing: false }));
     if (window.UZStore && window.UZStore.setLastIdentity) window.UZStore.setLastIdentity({ email: em, name: nm, phone: ph, kcp });
     if (live && window.UZSupa) {
-      try {
-        const upRes = await window.UZSupa.signUpPassword(em, { name: nm, phone: ph, nik: nik, gender: gender });
-        if (upRes.ok) { setStep('welcomeback'); return; }
-        // Confirm email masih ON → verifikasi via OTP sekali.
-        setOtp(genOtp()); window.UZSupa.sendOtp(em).catch(() => {}); setStep('otp'); return;
-      } catch (e) { setOtp(genOtp()); if (window.UZSupa) window.UZSupa.sendOtp(em).catch(() => {}); setStep('otp'); return; }
+      // Akun BARU (Confirm-email ON) → verifikasi lewat OTP. Kirim TEPAT SATU email
+      // OTP via signInWithOtp(shouldCreateUser:true) yang sekaligus membuat akun +
+      // metadata (nik/gender). PENTING: JANGAN panggil signUp() lebih dulu — signUp
+      // memicu email "Confirm signup" terpisah, lalu panggilan OTP <60 dtk sesudahnya
+      // kena cooldown per-alamat Supabase → email KODE gagal terkirim diam-diam
+      // (akar bug: "user tidak terima kode"). Password turunan tetap di-set setelah
+      // verifikasi (lihat onVerify) → login berikutnya tanpa OTP.
+      const res = await sendCode(em, { name: nm, phone: ph, nik: nik, gender: gender });
+      if (res.ok) { setOtp(genOtp()); setStep('otp'); }
+      else { setSignupErr(res.message); }   // tetap di layar Sign Up, tampilkan error
+      return;
     }
     setStep('welcomeback');
   };
@@ -752,7 +788,7 @@ function OnboardingGate({ onComplete }) {
     <div style={{ minHeight: '100vh' }}>
       {step === 'welcome' && <WelcomeScreen onStart={() => setStep('email')} />}
       {step === 'email' && <EmailScreen onSubmit={handleSubmit} onBack={() => setStep('welcome')} />}
-      {step === 'signup' && account && <SignUpScreen email={account.email} kcp={account.kcp} onCreate={handleCreate} onBack={() => setStep('email')} />}
+      {step === 'signup' && account && <SignUpScreen email={account.email} kcp={account.kcp} error={signupErr} onCreate={handleCreate} onBack={() => { setSignupErr(''); setStep('email'); }} />}
       {step === 'otp' && account && <OtpScreen email={email} code={otp} existing={account.existing} live={live} verifyLive={(c) => window.UZSupa.verifyOtp(email, c).then(() => true).catch(() => false)} onVerify={async () => {
         // Setelah verifikasi: kalau profil Supabase sudah pernah set goal,
         // langsung masuk (riwayat lari otomatis kembali) tanpa onboarding ulang.
@@ -774,7 +810,13 @@ function OnboardingGate({ onComplete }) {
           } catch (e) {}
         }
         setStep('welcomeback');
-      }} onResend={() => { setOtp(genOtp()); if (live && window.UZSupa) window.UZSupa.sendOtp(email).catch(() => {}); }} onBack={() => setStep('email')} />}
+      }} onResend={async () => {
+        setOtp(genOtp());
+        // Resend pakai metadata yang sudah dikumpulkan (kalau ada) supaya akun tetap lengkap,
+        // dan kembalikan hasilnya supaya OtpScreen bisa MENAMPILKAN error (bukan diam-diam).
+        const meta = account ? { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender } : undefined;
+        return await sendCode(email, meta);
+      }} onBack={() => setStep('email')} />}
       {step === 'welcomeback' && account && <WelcomeBack account={account} onContinue={afterWelcome} />}
       {/* Tidak ada pilih challenge di awal — user set Training Target lewat tombol Edit
           di beranda (dijelaskan di walkthrough). Pakai target default dulu. */}

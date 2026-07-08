@@ -56,6 +56,8 @@
       var data = {};
       if (meta && meta.name) data.full_name = meta.name;
       if (meta && meta.phone) data.phone = meta.phone;
+      if (meta && meta.nik != null) data.nik = meta.nik;
+      if (meta && meta.gender != null) data.gender = meta.gender;
       var r = await sb.auth.signInWithOtp({
         email: email,
         options: { shouldCreateUser: true, data: data },

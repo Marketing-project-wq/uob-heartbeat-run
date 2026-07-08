@@ -800,17 +800,22 @@ function OnboardingGate({ onComplete }) {
         // langsung masuk (riwayat lari otomatis kembali) tanpa onboarding ulang.
         if (live && window.UZSupa) {
           if (screenCode) {
-            // Kode diverifikasi LOKAL (tampil di layar) → belum ada sesi. Buat akun
-            // pre-konfirmasi via Edge Function `uob-signup` (TANPA email & TANPA ubah
-            // "Confirm email" — project ini dipakai bersama produk lain), lalu login
-            // pakai password turunan untuk dapat sesi asli.
+            // Kode diverifikasi LOKAL (tampil di layar) → belum ada sesi.
+            const meta2 = { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender };
             let ok = false;
+            // UTAMA: buat akun pre-konfirmasi via Edge Function `uob-signup` (TANPA email &
+            // TANPA ubah "Confirm email" — project dipakai produk lain), lalu login.
             try {
-              const made = await window.UZSupa.createUobAccount(email, { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender });
+              const made = await window.UZSupa.createUobAccount(email, meta2);
               if (made) { const si = await window.UZSupa.signInPassword(email); ok = !!(si && si.ok); }
             } catch (e) {}
+            // CADANGAN DARURAT: kalau Edge Function belum ter-deploy, coba daftar via
+            // signUp — berhasil kalau "Confirm email" sedang OFF. Beri jalan saat launch.
             if (!ok) {
-              return { ok: false, message: 'Gagal membuat akun. Pastikan Edge Function "uob-signup" sudah di-deploy di Supabase, lalu coba lagi.' };
+              try { const up = await window.UZSupa.signUpPassword(email, meta2); ok = !!(up && up.ok); } catch (e) {}
+            }
+            if (!ok) {
+              return { ok: false, message: 'Akun belum bisa dibuat. DEPLOY Edge Function "uob-signup", ATAU (darurat) matikan sementara "Confirm email" di Supabase.' };
             }
           } else {
             // Set password turunan sekarang (sesi aktif) → login lain kali TANPA OTP.

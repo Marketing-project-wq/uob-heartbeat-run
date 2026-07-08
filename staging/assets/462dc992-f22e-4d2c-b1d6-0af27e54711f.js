@@ -706,6 +706,9 @@ function OnboardingGate({ onComplete }) {
   // screenCode=true → layar OTP menampilkan kode di layar & verifikasi lokal (SIGN UP).
   const [screenCode, setScreenCode] = React.useState(false);
   const live = !!window.UZSupaEnabled;
+  // Toggle demo (lihat window.UOB_DEMO_OTP di supabase-config.js). Default false →
+  // OTP asli terkirim ke email. true → kode tampil di layar (staging/demo only).
+  const demoOtp = !!window.UOB_DEMO_OTP;
   const genOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
   // Ubah error kirim OTP jadi pesan yang bisa dibaca user (bukan gagal diam-diam).
@@ -767,12 +770,23 @@ function OnboardingGate({ onComplete }) {
     setAccount((a) => ({ ...(a || {}), name: nm, phone: ph, nik: nik, gender: gender, existing: false }));
     if (window.UZStore && window.UZStore.setLastIdentity) window.UZStore.setLastIdentity({ email: em, name: nm, phone: ph, kcp });
     if (live && window.UZSupa) {
-      // SIGN UP: tampilkan kode DI LAYAR (bukan email) → user tetap bisa lanjut walau
-      // email korporat memblokir. Kode dibuat & dicek lokal; akun ASLI dibuat saat
-      // verifikasi lewat derived password (lihat onVerify di render). Butuh setting
-      // Supabase "Confirm email" = OFF agar akun langsung dapat sesi.
-      setScreenCode(true);
-      setOtp(genOtp());
+      if (demoOtp) {
+        // MODE DEMO (window.UOB_DEMO_OTP=true): kode tampil DI LAYAR (bukan email) →
+        // dipakai staging/demo saat SMTP belum siap atau email korporat memblokir.
+        // Akun ASLI dibuat saat verifikasi lewat Edge Function + derived password
+        // (lihat cabang screenCode di onVerify).
+        setScreenCode(true);
+        setOtp(genOtp());
+        setStep('otp');
+        return;
+      }
+      // MODE PRODUKSI (default): kirim kode OTP ASLI ke email lewat Supabase Auth
+      // (signInWithOtp). verifyOtp nanti mengonfirmasi email SEKALIGUS membuat sesi
+      // — tidak butuh toggle "Confirm email" ataupun Edge Function uob-signup.
+      setScreenCode(false);
+      const meta = { name: nm, phone: ph, nik: nik, gender: gender };
+      const res = await sendCode(em, meta);
+      if (!res.ok) { setSignupErr(res.message); return; }
       setStep('otp');
       return;
     }

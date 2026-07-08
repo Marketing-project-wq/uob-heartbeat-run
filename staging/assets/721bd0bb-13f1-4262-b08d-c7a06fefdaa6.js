@@ -19,6 +19,18 @@ window.SUPABASE_CONFIG = {
 };
 
 // ============================================================
+//  MODE DEMO OTP (opsional — default OFF)
+//  ------------------------------------------------------------
+//  false (default) → OTP ASLI dikirim ke EMAIL user lewat Supabase Auth
+//                     (signInWithOtp + verifyOtp). Ini yang dipakai PRODUKSI.
+//  true             → kode 6 digit DITAMPILKAN DI LAYAR, tidak dikirim email.
+//                     HANYA untuk staging/demo saat SMTP belum siap atau email
+//                     korporat memblokir pengiriman. JANGAN dinyalakan di
+//                     produksi — pintu ini tidak memverifikasi kepemilikan email.
+// ============================================================
+window.UOB_DEMO_OTP = false;
+
+// ============================================================
 //  KONFIGURASI STRAVA  —  satu Client ID untuk SEMUA user.
 //  ------------------------------------------------------------
 //  clientId = "Client ID" dari aplikasi Strava-mu

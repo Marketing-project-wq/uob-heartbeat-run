@@ -50,4 +50,4 @@ http.createServer((req, res) => {
   }
   const isRoute = path.extname(safe) === '';                // no extension => client route
   return sendFile(res, file, isRoute ? path.join(APP_ROOT, 'index.html') : null);
-}).listen(PORT, () => console.log('UOB Heartbeat Run (STAGING) on ' + PORT));
+}).listen(PORT, () => console.log('UOB Heartbeat Run (STAGING) [onscreen-code+uob-signup build] on ' + PORT));

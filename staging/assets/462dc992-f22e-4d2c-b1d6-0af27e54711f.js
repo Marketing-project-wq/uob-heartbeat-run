@@ -286,8 +286,12 @@ function SignupScreen({ email, onCreate, onBack }) {
   );
 }
 
-// ── Step 3: OTP verification (kode dikirim ke email) ────────
-function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, verifyLive }) {
+// ── Step 3: OTP verification ────────────────────────────────
+//  live+verifyLive : kode dari EMAIL, diverifikasi ke server Supabase.
+//  screenCode       : kode DITAMPILKAN di layar (bukan email), dicek lokal, lalu
+//                     akun asli dibuat lewat derived password (onVerify). Dipakai
+//                     saat SIGN UP supaya user tetap bisa lanjut walau email diblokir.
+function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, verifyLive, screenCode }) {
   const LEN = 6;
   const [digits, setDigits] = React.useState(Array(LEN).fill(''));
   const [error, setError] = React.useState(false);
@@ -307,6 +311,17 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
   const full = entered.length === LEN;
 
   const doVerify = async (val) => {
+    if (screenCode) {
+      // Kode tampil di layar → cek LOKAL. Kalau cocok, onVerify() membuat akun asli
+      // (derived password) dan mengembalikan {ok:false,message} bila gagal (mis.
+      // "Confirm email" masih ON di Supabase).
+      if (val !== code) { setError(true); return; }
+      setVerifying(true); setError(false); setResendMsg('');
+      try { const r = await onVerify(); if (r && r.ok === false) setResendMsg(r.message || 'Gagal masuk. Coba lagi.'); }
+      catch (e) { setResendMsg('Gagal masuk. Coba lagi.'); }
+      finally { setVerifying(false); }
+      return;
+    }
     if (live) {
       setVerifying(true); setError(false);
       try { const ok = await verifyLive(val); if (ok) onVerify(); else setError(true); }
@@ -354,9 +369,11 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(0,96,192,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '18px auto 0' }}>
           <AuIcon name="bell" size={26} color="var(--blue)" stroke={2.2} />
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 23, color: 'var(--ink)', letterSpacing: -0.5, textAlign: 'center', margin: '14px 0 4px' }}>Check your email</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 23, color: 'var(--ink)', letterSpacing: -0.5, textAlign: 'center', margin: '14px 0 4px' }}>{screenCode ? 'Verify your account' : 'Check your email'}</h2>
         <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13.5, color: 'var(--muted)', textAlign: 'center', margin: '0 0 6px', lineHeight: 1.5 }}>
-          A 6-digit verification code has been sent to<br /><b style={{ color: 'var(--ink)' }}>{email}</b>
+          {screenCode
+            ? <>Enter the 6-digit code shown below to activate your account for<br /><b style={{ color: 'var(--ink)' }}>{email}</b></>
+            : <>A 6-digit verification code has been sent to<br /><b style={{ color: 'var(--ink)' }}>{email}</b></>}
         </p>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '20px 0 4px' }}>
@@ -381,10 +398,10 @@ function OtpScreen({ email, code, existing, onVerify, onResend, onBack, live, ve
           <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 12.5, color: 'var(--red)', textAlign: 'center', marginTop: 8 }}>Incorrect code. Please try again or resend.</div>
         )}
 
-        {/* Demo helper — hanya tampil di mode demo (tanpa backend email) */}
-        {!live && (
+        {/* Kode di layar: mode SIGN UP (screenCode) atau mode demo (tanpa backend email) */}
+        {(screenCode || !live) && (
           <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)', textAlign: 'center', marginTop: error ? 8 : 14, background: 'rgba(0,96,192,0.05)', borderRadius: 10, padding: '8px 12px' }}>
-            Demo · your code: <b style={{ color: 'var(--blue)', letterSpacing: 1 }}>{code}</b>
+            {screenCode ? 'Your code' : 'Demo · your code'}: <b style={{ color: 'var(--blue)', letterSpacing: 2, fontSize: 14 }}>{code}</b>
           </div>
         )}
 
@@ -686,6 +703,8 @@ function OnboardingGate({ onComplete }) {
   const [otp, setOtp] = React.useState('');
   const [pendingGoals, setPendingGoals] = React.useState(null);
   const [signupErr, setSignupErr] = React.useState('');
+  // screenCode=true → layar OTP menampilkan kode di layar & verifikasi lokal (SIGN UP).
+  const [screenCode, setScreenCode] = React.useState(false);
   const live = !!window.UZSupaEnabled;
   const genOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
@@ -706,12 +725,12 @@ function OnboardingGate({ onComplete }) {
 
   const handleSubmit = async ({ email: em, name, phone, kcp }) => {
     setEmail(em);
+    setScreenCode(false);   // default: jalur LOGIN/legacy pakai OTP email biasa
     const baseAcc = { name, phone, kcp, email: em, team: '', cat: null };
-    const otpFallback = () => { setAccount({ ...baseAcc, existing: false, saved: null }); setOtp(genOtp()); if (window.UZSupa) window.UZSupa.sendOtp(em).catch(() => {}); setStep('otp'); };
-
     // ── MODE ONLINE ──
-    //  • SIGN IN (akun sudah ada): TANPA OTP — langsung masuk otomatis.
-    //  • SIGN UP (akun baru): OTP sekali untuk verifikasi email.
+    //  • LOGIN (akun sudah pernah pakai app): TANPA kode — langsung masuk.
+    //  • SIGN UP (selain itu): kode DITAMPILKAN di layar (bukan email) → tetap jalan
+    //    walau email korporat memblokir. (Lihat handleCreate + OtpScreen `screenCode`.)
     if (live && window.UZSupa) {
       try {
         // 1) Coba MASUK pakai password turunan. Berhasil → akun ADA → langsung login.
@@ -725,19 +744,9 @@ function OnboardingGate({ onComplete }) {
           setAccount({ ...baseAcc, name: (prof && prof.full_name) || name, existing: true, saved: null });
           setStep('welcomeback'); return;
         }
-        // Akun ADA tapi email belum dikonfirmasi (Confirm email ON) → JANGAN
-        // suruh bikin akun baru; masuk via OTP (sekali), lalu password di-set.
-        const err = inRes.error || {};
-        const existsUnconfirmed = err.code === 'email_not_confirmed' || /not confirmed/i.test(err.message || '');
-        if (existsUnconfirmed) { otpFallback(); return; }
-        // signInPassword gagal & BUKAN "belum dikonfirmasi". Bisa jadi AKUN LAMA
-        // yang belum punya password turunan → harus LOGIN (via OTP sekali, lalu
-        // password turunan di-set → berikutnya tanpa OTP), BUKAN daftar ulang.
-        // Kirim OTP hanya kalau email memang SUDAH terdaftar.
-        var reg = 'notfound';
-        try { reg = await window.UZSupa.sendOtpIfRegistered(em); } catch (e2) {}
-        if (reg === 'sent') { setAccount({ ...baseAcc, existing: true, saved: null }); setOtp(genOtp()); setStep('otp'); return; }
-        // Benar-benar belum terdaftar → daftar akun baru.
+        // 2) Tak bisa login → arahkan ke SIGN UP (kode di layar). Akun BARU dibuat di
+        //    sana lewat password turunan; akun lama yang sudah pernah pakai app sudah
+        //    login di langkah 1. Tidak lagi bergantung pada email OTP.
         setAccount({ ...baseAcc, existing: false, saved: null });
         setStep('signup'); return;
       } catch (e) { setAccount({ ...baseAcc, existing: false, saved: null }); setStep('signup'); return; }
@@ -758,16 +767,13 @@ function OnboardingGate({ onComplete }) {
     setAccount((a) => ({ ...(a || {}), name: nm, phone: ph, nik: nik, gender: gender, existing: false }));
     if (window.UZStore && window.UZStore.setLastIdentity) window.UZStore.setLastIdentity({ email: em, name: nm, phone: ph, kcp });
     if (live && window.UZSupa) {
-      // Akun BARU (Confirm-email ON) → verifikasi lewat OTP. Kirim TEPAT SATU email
-      // OTP via signInWithOtp(shouldCreateUser:true) yang sekaligus membuat akun +
-      // metadata (nik/gender). PENTING: JANGAN panggil signUp() lebih dulu — signUp
-      // memicu email "Confirm signup" terpisah, lalu panggilan OTP <60 dtk sesudahnya
-      // kena cooldown per-alamat Supabase → email KODE gagal terkirim diam-diam
-      // (akar bug: "user tidak terima kode"). Password turunan tetap di-set setelah
-      // verifikasi (lihat onVerify) → login berikutnya tanpa OTP.
-      const res = await sendCode(em, { name: nm, phone: ph, nik: nik, gender: gender });
-      if (res.ok) { setOtp(genOtp()); setStep('otp'); }
-      else { setSignupErr(res.message); }   // tetap di layar Sign Up, tampilkan error
+      // SIGN UP: tampilkan kode DI LAYAR (bukan email) → user tetap bisa lanjut walau
+      // email korporat memblokir. Kode dibuat & dicek lokal; akun ASLI dibuat saat
+      // verifikasi lewat derived password (lihat onVerify di render). Butuh setting
+      // Supabase "Confirm email" = OFF agar akun langsung dapat sesi.
+      setScreenCode(true);
+      setOtp(genOtp());
+      setStep('otp');
       return;
     }
     setStep('welcomeback');
@@ -789,12 +795,22 @@ function OnboardingGate({ onComplete }) {
       {step === 'welcome' && <WelcomeScreen onStart={() => setStep('email')} />}
       {step === 'email' && <EmailScreen onSubmit={handleSubmit} onBack={() => setStep('welcome')} />}
       {step === 'signup' && account && <SignUpScreen email={account.email} kcp={account.kcp} error={signupErr} onCreate={handleCreate} onBack={() => { setSignupErr(''); setStep('email'); }} />}
-      {step === 'otp' && account && <OtpScreen email={email} code={otp} existing={account.existing} live={live} verifyLive={(c) => window.UZSupa.verifyOtp(email, c).then(() => true).catch(() => false)} onVerify={async () => {
+      {step === 'otp' && account && <OtpScreen email={email} code={otp} existing={account.existing} live={live} screenCode={screenCode} verifyLive={(c) => window.UZSupa.verifyOtp(email, c).then(() => true).catch(() => false)} onVerify={async () => {
         // Setelah verifikasi: kalau profil Supabase sudah pernah set goal,
         // langsung masuk (riwayat lari otomatis kembali) tanpa onboarding ulang.
         if (live && window.UZSupa) {
-          // Set password turunan sekarang (sesi aktif) → login lain kali TANPA OTP.
-          try { await window.UZSupa.setDerivedPassword(email); } catch (e) {}
+          if (screenCode) {
+            // Kode diverifikasi LOKAL (tampil di layar) → belum ada sesi. Buat akun +
+            // sesi asli via derived password. Butuh "Confirm email" OFF di Supabase.
+            let up = { ok: false };
+            try { up = await window.UZSupa.signUpPassword(email, { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender }); } catch (e) {}
+            if (!up.ok) {
+              return { ok: false, message: 'Akun belum bisa dibuat. Pastikan "Confirm email" DIMATIKAN di Supabase (Authentication → Sign In / Providers → Email), lalu coba lagi.' };
+            }
+          } else {
+            // Set password turunan sekarang (sesi aktif) → login lain kali TANPA OTP.
+            try { await window.UZSupa.setDerivedPassword(email); } catch (e) {}
+          }
           try {
             const prof = await window.UZSupa.getProfile();
             if (prof && prof.goals_set) {
@@ -812,8 +828,10 @@ function OnboardingGate({ onComplete }) {
         setStep('welcomeback');
       }} onResend={async () => {
         setOtp(genOtp());
-        // Resend pakai metadata yang sudah dikumpulkan (kalau ada) supaya akun tetap lengkap,
-        // dan kembalikan hasilnya supaya OtpScreen bisa MENAMPILKAN error (bukan diam-diam).
+        // SIGN UP (screenCode): cukup regenerasi kode di layar, tak perlu email.
+        if (screenCode) return { ok: true };
+        // Jalur email (login/legacy): kirim ulang OTP + kembalikan hasilnya supaya
+        // OtpScreen bisa MENAMPILKAN error (bukan gagal diam-diam).
         const meta = account ? { name: account.name, phone: account.phone, nik: account.nik, gender: account.gender } : undefined;
         return await sendCode(email, meta);
       }} onBack={() => setStep('email')} />}

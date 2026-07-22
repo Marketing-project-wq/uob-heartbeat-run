@@ -49,6 +49,34 @@ drop policy if exists "admin edits read" on public.uob_admin_edits;
 create policy "admin edits read" on public.uob_admin_edits
   for select to authenticated using (public.uob_is_admin(auth.uid()));
 
+-- 3b) Wajib ganti password saat login pertama (flag + RPC)
+alter table public.uob_admins add column if not exists must_change_pw boolean not null default false;
+
+create or replace function public.uob_admin_status()
+returns json language plpgsql stable security definer set search_path = public as $$
+declare v_must boolean;
+begin
+  if not public.uob_is_admin(auth.uid()) then raise exception 'not_authorized' using errcode='42501'; end if;
+  select must_change_pw into v_must from public.uob_admins where user_id = auth.uid();
+  return json_build_object('is_admin', true, 'must_change_pw', coalesce(v_must,false));
+end $$;
+grant execute on function public.uob_admin_status() to authenticated;
+
+create or replace function public.uob_admin_password_changed()
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if not public.uob_is_admin(auth.uid()) then raise exception 'not_authorized' using errcode='42501'; end if;
+  update public.uob_admins set must_change_pw = false where user_id = auth.uid();
+  return json_build_object('ok', true);
+end $$;
+grant execute on function public.uob_admin_password_changed() to authenticated;
+
+-- Cara buat/tandai admin (JANGAN simpan password di file/git):
+--   update auth.users set encrypted_password = crypt('<temp-pw>', gen_salt('bf')) where email='<admin-email>';
+--   insert into public.uob_admins(user_id, email, must_change_pw)
+--     select id, email, true from auth.users where email='<admin-email>'
+--     on conflict (user_id) do update set must_change_pw = true;
+
 -- 4) KPI ringkas
 create or replace function public.uob_admin_stats()
 returns json language plpgsql stable security definer set search_path = public as $$

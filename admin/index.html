@@ -256,7 +256,7 @@
   var num = function(n){ return (Number(n)||0).toLocaleString('id-ID'); };
   var km = function(n){ return (Math.round((Number(n)||0)*10)/10).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1}); };
 
-  var state = { users:[], queue:[], stats:null, tab:'overview', email:'', canValidate:false, valUnlocked:false };
+  var state = { users:[], queue:[], stats:null, tab:'overview', email:'', canValidate:false };
 
   // ---------------- LOGIN ----------------
   function setMsg(el,type,txt){ el.innerHTML = txt ? '<div class="msg '+type+'">'+txt+'</div>' : ''; }
@@ -346,34 +346,12 @@
   document.querySelectorAll('.tab').forEach(function(t){
     t.onclick = function(){
       var name = t.dataset.tab;
-      if(name==='review'){
-        if(!state.canValidate){ return; }            // uob dsb: tak boleh (tab juga disembunyikan)
-        if(!state.valUnlocked){ openValGate(); return; } // minta password 20FitFit dulu
-      }
+      // Validasi tetap disembunyikan & ditolak server untuk non-can_validate (uob).
+      // Tanpa password lagi untuk yang berhak (marketing) — langsung masuk.
+      if(name==='review' && !state.canValidate){ return; }
       showTab(name);
     };
   });
-
-  // Gerbang password untuk tab Validasi (friksi tambahan; keamanan UTAMA =
-  // pembatasan can_validate di server, uob benar-benar ditolak server).
-  function openValGate(){
-    var m=document.createElement('div'); m.className='modal-bg';
-    m.innerHTML='<div class="modal"><h3>Akses Validasi Data</h3>'+
-      '<p style="color:var(--muted);font-size:12.5px;margin:2px 0 0">Masukkan password akses untuk membuka halaman validasi.</p>'+
-      '<div class="field"><label>Password akses</label><input id="vg" type="password" autocomplete="off"/></div>'+
-      '<div id="vgMsg"></div>'+
-      '<div class="actions"><button class="btn btn-ghost" id="vgCancel">Batal</button><button class="btn btn-primary" id="vgOk">Buka</button></div></div>';
-    $('modalRoot').appendChild(m);
-    var inp=m.querySelector('#vg'); setTimeout(function(){inp.focus();},50);
-    m.querySelector('#vgCancel').onclick=function(){ m.remove(); };
-    m.onclick=function(e){ if(e.target===m) m.remove(); };
-    var submit=function(){
-      if(inp.value==='20FitFit'){ state.valUnlocked=true; m.remove(); showTab('review'); }
-      else { setMsg(m.querySelector('#vgMsg'),'err','Password akses salah.'); inp.select(); }
-    };
-    m.querySelector('#vgOk').onclick=submit;
-    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') submit(); });
-  }
 
   // ---------------- KPIs + CHART ----------------
   function renderKPIs(){

@@ -137,16 +137,12 @@
     <div class="eyebrow">UOB HEARTBEAT RUN</div>
     <h1>Admin Dashboard</h1>
     <p class="sub">Khusus admin. Masuk dengan email terdaftar sebagai admin.</p>
-    <div id="step-email">
+    <div id="step-login">
       <label>Email admin</label>
-      <input id="email" type="email" placeholder="nama@20fit.id" autocomplete="email" />
-      <button class="btn btn-orange" id="sendBtn">Kirim kode ke email</button>
-    </div>
-    <div id="step-code" class="hidden">
-      <label>Kode 6 digit (cek email)</label>
-      <input id="code" inputmode="numeric" maxlength="6" placeholder="••••••" />
-      <button class="btn btn-orange" id="verifyBtn">Masuk</button>
-      <button class="btn btn-ghost" id="backBtn" style="width:100%;margin-top:8px">Ganti email</button>
+      <input id="email" type="email" placeholder="nama@20fit.id" autocomplete="username" />
+      <label>Password</label>
+      <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <button class="btn btn-orange" id="loginBtn">Masuk</button>
     </div>
     <div id="loginMsg"></div>
   </div>
@@ -192,9 +188,20 @@
           <input type="search" id="userSearch" placeholder="Cari nama / email / NIK…" />
           <select id="genderFilter"><option value="">Semua gender</option><option value="Female">Perempuan</option><option value="Male">Laki-laki</option><option value="none">Belum diisi</option></select>
           <select id="statusFilter"><option value="">Semua status</option><option value="pending">Ada butuh review</option><option value="valid">Ada valid</option><option value="invalid">Ada ditolak</option></select>
-          <span class="spacer" style="flex:1"></span>
-          <button class="btn btn-orange" id="exportBtn">⬇ Export CSV</button>
         </div>
+        <div class="toolbar">
+          <label style="font-size:12px;color:var(--muted);font-weight:700">Tanggal run:</label>
+          <input type="date" id="dateFrom" title="Dari tanggal" />
+          <span style="color:var(--muted)">—</span>
+          <input type="date" id="dateTo" title="Sampai tanggal" />
+          <button class="btn btn-ghost" id="dateClear" style="padding:8px 12px">Reset tanggal</button>
+          <span class="spacer" style="flex:1"></span>
+          <span style="font-size:12px;color:var(--muted);font-weight:700;align-self:center">Export:</span>
+          <button class="btn btn-ghost" id="exportCsv">CSV</button>
+          <button class="btn btn-ghost" id="exportXlsx">Excel</button>
+          <button class="btn btn-orange" id="exportPdf">PDF</button>
+        </div>
+        <div id="dateNote" class="notice hidden" style="margin-bottom:12px"></div>
         <div id="usersArea"></div>
       </div>
     </section>
@@ -223,6 +230,10 @@
 <div id="imgRoot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!-- Export libs: SheetJS (Excel .xlsx) + jsPDF & autotable (PDF) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -241,27 +252,18 @@
   // ---------------- LOGIN ----------------
   function setMsg(el,type,txt){ el.innerHTML = txt ? '<div class="msg '+type+'">'+txt+'</div>' : ''; }
 
-  $('sendBtn').onclick = async function(){
-    var email = $('email').value.trim();
-    if(!email){ setMsg($('loginMsg'),'err','Isi email dulu.'); return; }
-    this.disabled = true; this.textContent='Mengirim…';
-    var r = await sb.auth.signInWithOtp({ email: email, options:{ shouldCreateUser:false }});
-    this.disabled = false; this.textContent='Kirim kode ke email';
-    if(r.error){ setMsg($('loginMsg'),'err','Gagal: '+r.error.message+' (email harus sudah terdaftar).'); return; }
-    state.email = email;
-    $('step-email').classList.add('hidden'); $('step-code').classList.remove('hidden');
-    setMsg($('loginMsg'),'ok','Kode dikirim ke '+esc(email)+'. Cek inbox/spam.');
-  };
-  $('backBtn').onclick = function(){ $('step-code').classList.add('hidden'); $('step-email').classList.remove('hidden'); setMsg($('loginMsg'),'',''); };
-  $('verifyBtn').onclick = async function(){
-    var token = $('code').value.trim();
-    if(token.length<6){ setMsg($('loginMsg'),'err','Kode 6 digit.'); return; }
-    this.disabled=true; this.textContent='Memeriksa…';
-    var r = await sb.auth.verifyOtp({ email: state.email, token: token, type:'email' });
-    this.disabled=false; this.textContent='Masuk';
-    if(r.error){ setMsg($('loginMsg'),'err','Kode salah / kedaluwarsa.'); return; }
-    await afterLogin();
-  };
+  async function doLogin(){
+    var email = $('email').value.trim(), pw = $('password').value;
+    if(!email || !pw){ setMsg($('loginMsg'),'err','Isi email dan password.'); return; }
+    var btn = $('loginBtn'); btn.disabled = true; btn.textContent='Memeriksa…';
+    // Autentikasi DIVERIFIKASI DI SERVER oleh Supabase Auth (bukan di client).
+    var r = await sb.auth.signInWithPassword({ email: email, password: pw });
+    if(r.error){ btn.disabled=false; btn.textContent='Masuk'; setMsg($('loginMsg'),'err','Email atau password salah.'); return; }
+    await afterLogin(); // afterLogin cek allowlist admin; kalau bukan admin → ditolak & signout
+    btn.disabled=false; btn.textContent='Masuk';
+  }
+  $('loginBtn').onclick = doLogin;
+  $('password').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 
   async function afterLogin(){
     // Verifikasi admin lewat RPC (guard). Kalau bukan admin → tolak.
@@ -334,9 +336,16 @@
   // ---------------- USERS TABLE ----------------
   async function loadUsers(){
     $('usersArea').innerHTML = '<div class="empty"><span class="spinner"></span> Memuat peserta…</div>';
-    var r = await sb.rpc('uob_admin_users', { p_search:null, p_gender:null, p_status:null });
+    var from = $('dateFrom').value || null, to = $('dateTo').value || null;
+    // Rentang tanggal difilter DI SERVER (agregat run dihitung utk periode itu).
+    var r = await sb.rpc('uob_admin_users', { p_search:null, p_gender:null, p_status:null, p_from:from, p_to:to });
     if(r.error){ $('usersArea').innerHTML = '<div class="empty">Gagal memuat: '+esc(r.error.message)+'</div>'; return; }
     state.users = r.data || [];
+    var note = $('dateNote');
+    if(from || to){
+      note.classList.remove('hidden');
+      note.innerHTML = 'Menampilkan peserta dengan run pada <b>'+(from||'awal')+'</b> s/d <b>'+(to||'sekarang')+'</b>. Kolom jumlah run &amp; KM dihitung untuk periode ini.';
+    } else { note.classList.add('hidden'); note.innerHTML=''; }
     renderUsers();
   }
   function currentFilteredUsers(){
@@ -380,21 +389,64 @@
   $('userSearch').oninput = renderUsers;
   $('genderFilter').onchange = renderUsers;
   $('statusFilter').onchange = renderUsers;
+  $('dateFrom').onchange = loadUsers;
+  $('dateTo').onchange = loadUsers;
+  $('dateClear').onclick = function(){ $('dateFrom').value=''; $('dateTo').value=''; loadUsers(); };
 
-  // ---------------- EXPORT CSV (ikut filter aktif) ----------------
-  $('exportBtn').onclick = function(){
-    var rows = currentFilteredUsers();
-    if(!rows.length){ alert('Tidak ada data untuk diexport.'); return; }
-    var cols = [['full_name','Nama'],['email','Email'],['phone','No HP'],['nik','NIK'],['gender','Gender'],['kcp','KCP'],['team','Tim'],
-      ['total_runs','Total Run'],['valid_runs','Run Valid'],['pending_runs','Butuh Review'],['invalid_runs','Ditolak'],
-      ['total_km','Total KM Input'],['valid_km','KM Valid'],['last_run_at','Log Terakhir']];
-    var q = function(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; };
-    var csv = cols.map(function(c){return q(c[1]);}).join(',')+'\r\n';
-    rows.forEach(function(u){ csv += cols.map(function(c){return q(u[c[0]]);}).join(',')+'\r\n'; });
-    var d = new Date(); var stamp = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    var blob = new Blob(["﻿"+csv], {type:'text/csv;charset=utf-8;'});
-    var a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download = 'uob-heartbeat-onboarded-'+stamp+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+  // ---------------- EXPORT (CSV / Excel / PDF) — data = yang SEDANG tampil ----------------
+  var EXPORT_COLS = [['full_name','Nama'],['email','Email'],['phone','No HP'],['nik','NIK'],['gender','Gender'],['kcp','KCP'],['team','Tim'],
+    ['total_runs','Total Run'],['valid_runs','Run Valid'],['pending_runs','Butuh Review'],['invalid_runs','Ditolak'],
+    ['total_km','Total KM'],['valid_km','KM Valid'],['last_run_at','Log Terakhir']];
+  function dateStamp(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function fname(ext){ return 'uob-heartbeat-peserta-'+dateStamp()+'.'+ext; }
+  function activeFiltersText(){
+    var p=[]; var q=$('userSearch').value.trim(); if(q) p.push('cari: "'+q+'"');
+    var g=$('genderFilter').value; if(g) p.push('gender: '+(g==='Male'?'Laki-laki':g==='Female'?'Perempuan':'belum diisi'));
+    var st=$('statusFilter').value; if(st) p.push('status: '+st);
+    var f=$('dateFrom').value, t=$('dateTo').value; if(f||t) p.push('tanggal run: '+(f||'awal')+' s/d '+(t||'sekarang'));
+    return p.length? p.join(' · ') : 'semua data (tanpa filter)';
+  }
+  function downloadBlob(blob, name){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); }
+
+  $('exportCsv').onclick = function(){
+    var rows = currentFilteredUsers(); if(!rows.length){ alert('Tidak ada data untuk diexport.'); return; }
+    var q=function(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; };
+    var csv = EXPORT_COLS.map(function(c){return q(c[1]);}).join(',')+'\r\n';
+    rows.forEach(function(u){ csv += EXPORT_COLS.map(function(c){return q(u[c[0]]);}).join(',')+'\r\n'; });
+    downloadBlob(new Blob(["﻿"+csv], {type:'text/csv;charset=utf-8;'}), fname('csv'));
+  };
+  $('exportXlsx').onclick = function(){
+    if(!window.XLSX){ alert('Library Excel belum termuat. Coba lagi sebentar.'); return; }
+    var rows = currentFilteredUsers(); if(!rows.length){ alert('Tidak ada data.'); return; }
+    var aoa = [EXPORT_COLS.map(function(c){return c[1];})];
+    rows.forEach(function(u){ aoa.push(EXPORT_COLS.map(function(c){ var v=u[c[0]]; return v==null?'':v; })); });
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = EXPORT_COLS.map(function(c){ return { wch: Math.max(10, c[1].length+2) }; });
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Peserta');
+    XLSX.writeFile(wb, fname('xlsx'));
+  };
+  $('exportPdf').onclick = function(){
+    var ctor = window.jspdf && window.jspdf.jsPDF;
+    if(!ctor){ alert('Library PDF belum termuat. Coba lagi sebentar.'); return; }
+    var rows = currentFilteredUsers(); if(!rows.length){ alert('Tidak ada data.'); return; }
+    if(rows.length>4000 && !confirm('Data '+rows.length+' baris — buat PDF bisa lama. Untuk data sangat besar, Excel/CSV lebih cepat. Lanjut PDF?')) return;
+    var btn=$('exportPdf'); var old=btn.textContent; btn.textContent='Membuat…'; btn.disabled=true;
+    setTimeout(function(){
+      try{
+        var doc = new ctor({ orientation:'landscape', unit:'pt', format:'a4' });
+        doc.setFontSize(15); doc.setTextColor(20); doc.text('UOB Heartbeat Run — Data Peserta', 40, 40);
+        doc.setFontSize(9); doc.setTextColor(110);
+        doc.text('Tanggal export: '+dateStamp()+'   |   '+rows.length+' peserta', 40, 58);
+        doc.text('Filter aktif: '+activeFiltersText(), 40, 72);
+        doc.autoTable({ startY:86,
+          head:[EXPORT_COLS.map(function(c){return c[1];})],
+          body: rows.map(function(u){ return EXPORT_COLS.map(function(c){ var v=u[c[0]]; return v==null?'':String(v); }); }),
+          styles:{ fontSize:7, cellPadding:3, overflow:'linebreak' }, headStyles:{ fillColor:[242,106,33] },
+          margin:{ left:40, right:40 } });
+        doc.save(fname('pdf'));
+      } catch(e){ alert('Gagal membuat PDF: '+e.message); }
+      btn.textContent=old; btn.disabled=false;
+    }, 30);
   };
 
   // ---------------- EDIT USER (tipe B) ----------------

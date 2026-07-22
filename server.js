@@ -10,9 +10,11 @@ const PORT = process.env.PORT || 3000;
 const APP_ROOT = path.join(__dirname, 'staging');          // clean app is the web root here
 const VRUN = path.join(__dirname, 'virtualrun', 'index.html');
 const VRUN_TEST = path.join(__dirname, 'virtualrun-test', 'index.html');
+const ADMIN = path.join(__dirname, 'admin', 'index.html');
 
 const VRUN_PATHS = ['/virtualrun', '/virtualrun/', '/virtualrun/index.html', '/virtual-run.html', '/virtualrun.html'];
 const VRUN_TEST_PATHS = ['/virtualrun-test', '/virtualrun-test/', '/virtualrun-test/index.html'];
+const ADMIN_PATHS = ['/admin', '/admin/', '/admin/index.html'];
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -37,6 +39,7 @@ function sendFile(res, file, fallback) {
 http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0].split('#')[0];
 
+  if (ADMIN_PATHS.indexOf(url) !== -1) return sendFile(res, ADMIN);
   if (VRUN_TEST_PATHS.indexOf(url) !== -1) return sendFile(res, VRUN_TEST);
   if (VRUN_PATHS.indexOf(url) !== -1) return sendFile(res, VRUN);
 

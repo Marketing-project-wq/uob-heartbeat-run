@@ -218,7 +218,7 @@ function fileToDataURL(file) {
 // Bukti lari WAJIB + divalidasi otomatis (AI vision di Supabase Edge Function):
 // hanya menerima FOTO JAM DIGITAL atau SCREENSHOT HEALTH APP yang menampilkan
 // jarak lari (km). Selfie / foto tak relevan ditolak dengan alasan.
-function RunProof({ photo, vstatus, vreason, onPick }) {
+function RunProof({ photo, vstatus, vreason, vinfo, kmInput, onPick }) {
   const camRef = React.useRef(null);
   const fileRef = React.useRef(null);
   const pick = (e) => { const f = e.target.files && e.target.files[0]; if (f) onPick(f); e.target.value = ''; };
@@ -241,17 +241,32 @@ function RunProof({ photo, vstatus, vreason, onPick }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <img src={photo} alt="" style={{ width: 46, height: 46, borderRadius: 12, objectFit: 'cover', flexShrink: 0, opacity: vstatus === 'invalid' ? 0.5 : 1 }} />
             <div style={{ flex: 1 }}>
-              {checking && <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--blue)' }}><LIcon name="watch" size={13} stroke={2.4} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Checking your photo…</span></div>}
-              {vstatus === 'valid' && <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#0E7A52' }}><LIcon name="check" size={14} stroke={3} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Verified — running distance detected</span></div>}
-              {vstatus === 'invalid' && <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)' }}><LIcon name="close" size={14} stroke={3} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Photo rejected</span></div>}
+              {checking && <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--blue)' }}><LIcon name="watch" size={13} stroke={2.4} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Reading the distance in your photo…</span></div>}
+              {vstatus === 'valid' && <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#0E7A52' }}><LIcon name="check" size={14} stroke={3} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Verified{vinfo && vinfo.km_detected != null ? ' — photo shows ' + vinfo.km_detected + ' km' : ''}</span></div>}
+              {vstatus === 'invalid' && <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)' }}><LIcon name="close" size={14} stroke={3} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>{vinfo && vinfo.km_detected != null ? 'Distance doesn’t match' : 'Photo rejected'}</span></div>}
+              {vstatus === 'review' && <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#B7791F' }}><LIcon name="watch" size={14} stroke={2.6} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Saved for review — number wasn’t clear</span></div>}
               {vstatus === 'error' && <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#B7791F' }}><LIcon name="check" size={14} stroke={2.6} /><span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5 }}>Couldn’t auto-verify — team will review</span></div>}
-              {!checking && <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)', marginTop: 1 }}>{vstatus === 'valid' ? 'Make sure the km matches what you typed.' : 'Tap Replace to choose another photo.'}</div>}
+              {!checking && <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)', marginTop: 1 }}>{
+                vstatus === 'valid' ? 'The photo’s distance matches what you typed.'
+                : vstatus === 'invalid' ? 'Fix the km above, or replace the photo.'
+                : vstatus === 'review' ? 'It will count once the team confirms it.'
+                : 'Tap Replace to choose another photo.'
+              }</div>}
             </div>
             <button onClick={() => fileRef.current && fileRef.current.click()} disabled={checking} style={{ border: 'none', background: 'rgba(2,32,71,0.06)', cursor: checking ? 'wait' : 'pointer', borderRadius: 10, padding: '7px 11px', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12, color: 'var(--blue)' }}>Replace</button>
           </div>
-          {vstatus === 'invalid' && vreason && (
+          {vstatus === 'invalid' && (
             <div style={{ marginTop: 10, background: 'rgba(244,37,60,0.07)', border: '1px solid rgba(244,37,60,0.2)', borderRadius: 12, padding: '10px 12px', fontFamily: 'var(--font-ui)', fontSize: 11.5, color: '#B42318', lineHeight: 1.5 }}>
-              <b>Why it was rejected:</b> {vreason} Please upload a photo of your digital watch or a health-app screenshot that clearly shows the running distance in km.
+              {vinfo && vinfo.km_detected != null ? (
+                <span><b>Angka tidak cocok / Distance mismatch:</b> the photo shows <b>{vinfo.km_detected} km</b> but you typed <b>{kmInput} km</b>{vinfo.delta != null ? ' (off by ' + vinfo.delta + ' km)' : ''}. Please correct the distance so it matches your proof, or upload the right photo.</span>
+              ) : (
+                <span><b>Why it was rejected:</b> {vreason} Please upload a photo of your digital watch or a health-app screenshot that clearly shows the running distance in km.</span>
+              )}
+            </div>
+          )}
+          {vstatus === 'review' && (
+            <div style={{ marginTop: 10, background: 'rgba(183,121,31,0.09)', border: '1px solid rgba(183,121,31,0.28)', borderRadius: 12, padding: '10px 12px', fontFamily: 'var(--font-ui)', fontSize: 11.5, color: '#8A5A00', lineHeight: 1.5 }}>
+              <b>Menunggu review:</b> fotonya terlihat seperti bukti lari, tapi angkanya kurang jelas terbaca. Larimu tetap tersimpan dan akan <b>dihitung setelah tim memverifikasi</b>. Untuk langsung terverifikasi, unggah foto yang lebih jelas.
             </div>
           )}
         </div>
@@ -275,41 +290,67 @@ function ManualEntry({ onSave }) {
   const [kmStr, setKmStr] = React.useState('5.0');
   const [photo, setPhoto] = React.useState(null);
   const [photoFile, setPhotoFile] = React.useState(null);
-  const [vstatus, setVstatus] = React.useState('idle'); // idle|checking|valid|invalid|error
+  const [vstatus, setVstatus] = React.useState('idle'); // idle|checking|valid|invalid|review|error
   const [vreason, setVreason] = React.useState('');
+  const [vinfo, setVinfo] = React.useState(null); // { km_detected, delta, tolerance }
   // Terima koma & titik (beberapa keyboard, mis. iOS locale ID, keluar koma).
   const km = Math.max(0, parseFloat(String(kmStr).replace(',', '.')) || 0);
   const setKm = (v) => setKmStr(String(Math.round(Math.max(0, v) * 10) / 10));
   const reqIdRef = React.useRef(0);
 
-  const onPick = async (file) => {
+  // Validasi ulang otomatis saat user mengubah KM (foto sudah terpasang),
+  // supaya pencocokan angka selalu memakai KM terbaru.
+  const validate = async (file, curKm) => {
     const id = ++reqIdRef.current;
-    const url = URL.createObjectURL(file);
-    setPhoto(url); setPhotoFile(file); setVreason('');
     // Offline / Supabase mati → tak bisa validasi otomatis, terima (review manual).
-    if (!window.UZSupaEnabled || !window.UZSupa || !window.UZSupa.validateRunProof) { setVstatus('error'); return; }
-    setVstatus('checking');
+    if (!window.UZSupaEnabled || !window.UZSupa || !window.UZSupa.validateRunProof) { setVstatus('error'); setVinfo(null); return; }
+    setVstatus('checking'); setVreason('');
     try {
       const dataUrl = await fileToDataURL(file);
-      const res = await window.UZSupa.validateRunProof(dataUrl, km);
-      if (id !== reqIdRef.current) return; // sudah diganti foto lain
-      if (res && res.valid) { setVstatus('valid'); }
-      else if (res && res.serviceError) { setVstatus('error'); }
+      const res = await window.UZSupa.validateRunProof(dataUrl, curKm);
+      if (id !== reqIdRef.current) return; // sudah diganti foto/angka lain
+      const st = res && res.status;
+      setVinfo(res ? { km_detected: res.km_detected, delta: res.delta, tolerance: res.tolerance } : null);
+      if (res && res.serviceError) { setVstatus('error'); }
+      else if (st === 'valid' || (res && res.valid)) { setVstatus('valid'); setVreason((res && res.reason) || ''); }
+      else if (st === 'needs_review') { setVstatus('review'); setVreason((res && res.reason) || ''); }
       else { setVstatus('invalid'); setVreason((res && res.reason) || 'This photo doesn’t look like a digital watch or a health-app screenshot showing your running distance.'); }
     } catch (e) {
       if (id !== reqIdRef.current) return;
-      setVstatus('error'); // fail-open: jangan blokir kalau layanan error
+      setVstatus('error'); setVinfo(null); // fail-open: jangan blokir kalau layanan error
     }
   };
 
-  const canSave = km > 0 && photo && (vstatus === 'valid' || vstatus === 'error');
+  const onPick = async (file) => {
+    const url = URL.createObjectURL(file);
+    setPhoto(url); setPhotoFile(file);
+    await validate(file, km);
+  };
+
+  // Kalau user mengubah KM setelah foto terpasang, cek ulang (debounce ringan).
+  const kmDebRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!photoFile) return;
+    if (kmDebRef.current) clearTimeout(kmDebRef.current);
+    kmDebRef.current = setTimeout(() => { validate(photoFile, km); }, 600);
+    return () => { if (kmDebRef.current) clearTimeout(kmDebRef.current); };
+    // eslint-disable-next-line
+  }, [km]);
+
+  // Otomatis: mismatch angka (invalid) = WAJIB dibetulkan → tak bisa simpan.
+  // 'review' (foto oke tapi angka tak terbaca) & 'error' (layanan mati) →
+  // boleh simpan sebagai "menunggu review" (tidak masuk leaderboard dulu).
+  const canSave = km > 0 && photo && (vstatus === 'valid' || vstatus === 'review' || vstatus === 'error');
+  // proof_status yang dikirim ke penyimpanan.
+  const saveStatus = vstatus === 'valid' ? 'valid' : 'needs_review';
   const saveLabel = !photo ? 'Attach run proof to continue'
     : vstatus === 'checking' ? 'Checking photo…'
-    : vstatus === 'invalid' ? 'Replace the rejected photo'
-    : 'Save Run';
+    : vstatus === 'invalid' ? 'Fix the distance or replace the photo'
+    : vstatus === 'valid' ? 'Save Run'
+    : 'Save Run (pending review)';
   return (
     <div style={{ padding: '14px 20px 28px' }}>
-      <RunProof photo={photo} vstatus={vstatus} vreason={vreason} onPick={onPick} />
+      <RunProof photo={photo} vstatus={vstatus} vreason={vreason} vinfo={vinfo} kmInput={km} onPick={onPick} />
       {/* distance — hanya kilometer */}
       <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 20, padding: 18, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -341,7 +382,16 @@ function ManualEntry({ onSave }) {
         </div>
       </div>
 
-      <button onClick={() => canSave && onSave({ km, mins: null, source: 'manual', photo, photoFile, proofValid: vstatus === 'valid', when: 'Today' })} disabled={!canSave} style={{
+      <button onClick={() => canSave && onSave({
+        km, mins: null, source: 'manual', photo, photoFile,
+        proofValid: vstatus === 'valid',
+        proofStatus: saveStatus,
+        kmDetected: vinfo ? vinfo.km_detected : null,
+        delta: vinfo ? vinfo.delta : null,
+        tolerance: vinfo ? vinfo.tolerance : null,
+        proofReason: vreason || null,
+        when: 'Today',
+      })} disabled={!canSave} style={{
         width: '100%', marginTop: 4, border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', borderRadius: 16, padding: '16px 0',
         background: canSave ? 'var(--red)' : 'rgba(2,32,71,0.12)', color: canSave ? '#fff' : 'var(--muted)',
         fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, transition: 'background .2s',

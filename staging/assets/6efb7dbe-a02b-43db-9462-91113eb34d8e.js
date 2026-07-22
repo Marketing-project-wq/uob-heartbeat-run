@@ -169,6 +169,11 @@ function LeaderboardScreen({ myTodayKm, meName, meAvatar, meKcp, meTeam, meTotal
   const [live, setLive] = React.useState(null);   // { today:[], season:[] } bila online
   const [query, setQuery] = React.useState('');
   const [shown, setShown] = React.useState(10);   // tampil top 10, sisanya "Load more"
+  // Dua papan terpisah: Perempuan & Laki-laki. Default = gender sendiri;
+  // kalau belum diisi, default ke Perempuan (tetap bisa di-toggle).
+  const myGenderNorm = String(meGender || '').toLowerCase();
+  const [genderSel, setGenderSel] = React.useState(myGenderNorm === 'male' ? 'male' : 'female');
+  const genderInitRef = React.useRef(false);
   const isToday = tab === TAB_TODAY;
   const isKcp = tab === TAB_KCP;
   React.useEffect(() => { setShown(10); }, [tab, query]);
@@ -176,9 +181,11 @@ function LeaderboardScreen({ myTodayKm, meName, meAvatar, meKcp, meTeam, meTotal
   React.useEffect(() => {
     if (!window.UZSupaEnabled || !window.UZSupa) return;
     let alive = true;
+    // Leaderboard HANYA menghitung data VALID (tervalidasi). Pakai view
+    // valid-only; fallback ke view lama kalau method belum tersedia.
     Promise.all([
-      window.UZSupa.leaderboardDaily(),
-      window.UZSupa.leaderboardSeason(),
+      window.UZSupa.leaderboardValidDaily ? window.UZSupa.leaderboardValidDaily() : window.UZSupa.leaderboardDaily(),
+      window.UZSupa.leaderboardValidSeason ? window.UZSupa.leaderboardValidSeason() : window.UZSupa.leaderboardSeason(),
       window.UZSupa.genderMap ? window.UZSupa.genderMap() : Promise.resolve({}),
       window.UZSupa.nikMap ? window.UZSupa.nikMap() : Promise.resolve({}),
     ]).then(([d, s, gmap, nikmap]) => {
@@ -210,15 +217,25 @@ function LeaderboardScreen({ myTodayKm, meName, meAvatar, meKcp, meTeam, meTotal
   // URUTKAN berdasarkan jarak (terbesar dulu) — view Supabase bisa mengembalikan
   // rank yang belum benar, jadi ranking dihitung ulang di sini dari km.
   list = list.slice().sort((a, b) => (Number(b.km) || 0) - (Number(a.km) || 0));
-  // Filter per GENDER: di Today & Best of Best, hanya tampilkan pelari dengan
-  // gender yang sama dengan kita (cewek lihat cewek, cowok lihat cowok).
-  // Diri sendiri selalu ikut tampil. My Team tetap berbasis tim (tidak difilter gender).
-  // Gender efektif: dari profil; kalau kosong, ambil dari baris "me" di data server.
+  // DUA papan peringkat terpisah: Perempuan & Laki-laki (Feature: leaderboard L/P).
+  // Di Today & Best of Best, tampilkan HANYA pelari sesuai gender yang dipilih.
+  // My Team tetap berbasis tim (tidak difilter gender).
+  // Gender efektif saya: dari profil; kalau kosong, ambil dari baris "me" server.
   const myLiveRow = (liveList || []).find((p) => p.me);
   const meGenderEff = meGender || (myLiveRow && myLiveRow.gender) || '';
-  if (!isKcp && meGenderEff) {
-    const g = String(meGenderEff).toLowerCase();
-    list = list.filter((p) => p.me || String(p.gender || '').toLowerCase() === g);
+  // Sekali data server siap, set default toggle ke gender saya (kalau diketahui).
+  if (!genderInitRef.current && meGenderEff) {
+    const mg = String(meGenderEff).toLowerCase();
+    if (mg === 'male' || mg === 'female') { genderInitRef.current = true; if (mg !== genderSel) setGenderSel(mg); }
+  }
+  const meHasGender = meGenderEff && (String(meGenderEff).toLowerCase() === 'male' || String(meGenderEff).toLowerCase() === 'female');
+  if (!isKcp) {
+    const g = genderSel; // 'male' | 'female'
+    // "Me" hanya ikut tampil di papan yang sesuai gender-ku (atau bila gender-ku
+    // belum diketahui, tetap tampilkan supaya aku bisa lihat posisiku).
+    const showMeHere = !meHasGender || String(meGenderEff).toLowerCase() === g;
+    list = list.filter((p) => (p.me ? showMeHere : String(p.gender || '').toLowerCase() === g));
+    if (!list.length && showMeHere) list = [meRow];
   }
   // Tab "My Team": HANYA anggota tim yang sudah join (by user_id). Diri sendiri selalu masuk.
   if (isKcp) {
@@ -238,9 +255,10 @@ function LeaderboardScreen({ myTodayKm, meName, meAvatar, meKcp, meTeam, meTotal
     return (nm + ' ' + id).toLowerCase();
   };
   const filtered = q ? ranked.filter((p) => matchStr(p).includes(q)) : null;
-  const subtitle = isToday ? 'Distance run today · resets at midnight'
-    : isKcp ? ('Team standings' + (team ? ' · ' + team.name : '') + ' · season total')
-    : 'Total training distance this season';
+  const genderLabel = genderSel === 'male' ? 'Laki-laki' : 'Perempuan';
+  const subtitle = isKcp ? ('Team standings' + (team ? ' · ' + team.name : '') + ' · season total')
+    : isToday ? ('Papan ' + genderLabel + ' · jarak valid hari ini')
+    : ('Papan ' + genderLabel + ' · total KM valid semusim');
   return (
     <div style={{ paddingTop: 64, paddingBottom: 112 }}>
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
@@ -250,6 +268,24 @@ function LeaderboardScreen({ myTodayKm, meName, meAvatar, meKcp, meTeam, meTotal
       <div style={{ padding: '0 20px', marginBottom: 14 }}>
         <LBTabs tabs={[TAB_TODAY, TAB_BEST, TAB_KCP]} value={tab} onChange={setTab} />
       </div>
+      {/* Toggle papan Perempuan / Laki-laki (kecuali tab My Team) */}
+      {!isKcp && (
+        <div style={{ padding: '0 20px', marginBottom: 14 }}>
+          <LBTabs
+            tabs={['Perempuan', 'Laki-laki']}
+            value={genderSel === 'male' ? 'Laki-laki' : 'Perempuan'}
+            onChange={(v) => setGenderSel(v === 'Laki-laki' ? 'male' : 'female')}
+          />
+          {!meHasGender && (
+            <div style={{ marginTop: 10, background: 'rgba(0,96,192,0.05)', border: '1px solid rgba(0,96,192,0.18)', borderRadius: 12, padding: '9px 12px', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <LBIcon name="bell" size={14} color="var(--blue)" stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+              <p style={{ margin: 0, fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                Gender kamu belum diisi, jadi kamu belum masuk papan peringkat Perempuan/Laki-laki. Lengkapi di <b style={{ color: 'var(--blue)' }}>Profile</b> supaya larimu ikut diranking.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       {/* search */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 14, padding: '11px 14px' }}>
@@ -322,12 +358,17 @@ function LeaderboardScreen({ myTodayKm, meName, meAvatar, meKcp, meTeam, meTotal
         </React.Fragment>
       )}
 
-      {/* Disclaimer validasi (English) */}
+      {/* Disclaimer validasi (ID utama + EN) */}
       <div style={{ margin: '22px 20px 0', background: 'rgba(0,96,192,0.05)', border: '1px solid rgba(0,96,192,0.18)', borderRadius: 16, padding: '13px 15px', display: 'flex', gap: 10 }}>
         <LBIcon name="bell" size={16} color="var(--blue)" stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
-        <p style={{ margin: 0, fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.55 }}>
-          The proof photos you submit with each run will be used to verify your distances. These standings are provisional — after the leaderboard closes, the team reviews the photos from your run logs to validate accuracy, and final rankings may be adjusted accordingly.
-        </p>
+        <div style={{ margin: 0 }}>
+          <p style={{ margin: 0, fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--ink)', lineHeight: 1.55 }}>
+            <b>Peringkat bisa berubah.</b> Papan ini hanya menghitung lari yang <b>sudah tervalidasi</b>. Foto bukti tiap lari dicek untuk memastikan jaraknya benar, jadi posisimu bisa naik/turun saat data divalidasi atau ada yang ditinjau ulang.
+          </p>
+          <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+            Only validated runs are ranked here. Standings are provisional and may change as proof photos are verified.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -341,8 +382,12 @@ function HomeLeaderboard({ goTo, myTodayKm, meName, meAvatar, meGender, meId }) 
   React.useEffect(() => {
     if (!window.UZSupaEnabled || !window.UZSupa || !window.UZSupa.leaderboardDaily) return;
     let alive = true;
+    // Kartu home juga hanya menghitung jarak VALID hari ini (konsisten dgn papan penuh).
+    const dailyFn = window.UZSupa.leaderboardValidDaily
+      ? window.UZSupa.leaderboardValidDaily.bind(window.UZSupa)
+      : window.UZSupa.leaderboardDaily.bind(window.UZSupa);
     Promise.all([
-      window.UZSupa.leaderboardDaily(),
+      dailyFn(),
       window.UZSupa.genderMap ? window.UZSupa.genderMap() : Promise.resolve({}),
     ]).then(([d, gmap]) => {
       if (!alive) return;

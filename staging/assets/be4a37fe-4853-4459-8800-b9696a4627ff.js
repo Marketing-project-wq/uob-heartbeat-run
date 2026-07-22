@@ -125,6 +125,10 @@ function wBuildExtraFromRuns(rows) {
     when: a.recorded_at ? new Date(a.recorded_at).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Today',
     recordedAt: a.recorded_at,
     external_id: a.external_id || null,
+    // Status validasi (untuk chip di Run History). proof_valid=true → valid;
+    // proof_status 'invalid' → tidak cocok; selain itu → menunggu review.
+    proofValid: a.proof_valid === true,
+    proofStatus: a.proof_valid === true ? 'valid' : (a.proof_status === 'invalid' ? 'invalid' : (a.proof_status === 'auto_verified' ? 'valid' : 'needs_review')),
   }));
   const km = runs.reduce((s, r) => s + r.km, 0);
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
@@ -512,12 +516,38 @@ function VirtualRaceCard() {
   );
 }
 
+// Chip status validasi untuk tiap lari di Run History.
+//   valid → hijau; needs_review → kuning; invalid → merah.
+function RunValidBadge({ status }) {
+  const map = {
+    valid: { t: '✓ Tervalidasi', bg: 'rgba(14,122,82,0.1)', fg: '#0E7A52', bd: 'rgba(14,122,82,0.25)' },
+    needs_review: { t: '⏳ Menunggu review', bg: 'rgba(183,121,31,0.12)', fg: '#8A5A00', bd: 'rgba(183,121,31,0.3)' },
+    invalid: { t: '⚠ Belum cocok', bg: 'rgba(244,37,60,0.09)', fg: '#B42318', bd: 'rgba(244,37,60,0.25)' },
+  };
+  const s = map[status] || map.needs_review;
+  return (
+    <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 10.5, color: s.fg, background: s.bg, border: '1px solid ' + s.bd, borderRadius: 999, padding: '2px 8px', lineHeight: 1.4, whiteSpace: 'nowrap' }}>{s.t}</span>
+  );
+}
+
 // ── Profile (web copy) ──────────────────────────────────────
 function WebProfile({ data, onConnect, onLogout, onEditGoal, onSaveProfile, team, teams, onCreateTeam, onShareTeam, onUploadAvatar, onShareRun }) {
   const [editing, setEditing] = React.useState(false);
   const [showCount, setShowCount] = React.useState(5);
   const sortedRuns = React.useMemo(() => (data.runs || []).slice().sort((a, b) => new Date(b.recordedAt || 0) - new Date(a.recordedAt || 0)), [data.runs]);
   React.useEffect(() => { setShowCount(5); }, [data.runs && data.runs.length]);
+  // Ringkasan status validasi lari (untuk keterangan ke user).
+  const vSummary = React.useMemo(() => {
+    const out = { validKm: 0, valid: 0, pending: 0, invalid: 0 };
+    (data.runs || []).forEach((r) => {
+      if (r.proofStatus === 'valid') { out.valid++; out.validKm += Number(r.km) || 0; }
+      else if (r.proofStatus === 'invalid') { out.invalid++; }
+      else { out.pending++; }
+    });
+    out.validKm = Math.round(out.validKm * 10) / 10;
+    return out;
+  }, [data.runs]);
+  const genderMissing = !(data.gender === 'Male' || data.gender === 'Female');
   const [pName, setPName] = React.useState(data.userName);
   const [pGender, setPGender] = React.useState(data.gender || '');
   const [pPhone, setPPhone] = React.useState(data.phone || '');
@@ -632,6 +662,25 @@ function WebProfile({ data, onConnect, onLogout, onEditGoal, onSaveProfile, team
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>Run History</span>
             <span style={{ fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12.5, color: 'var(--muted)' }}>{data.runs.length} {data.runs.length === 1 ? 'run' : 'runs'}</span>
           </div>
+          {/* Keterangan status validasi + catatan leaderboard bisa berubah */}
+          <div style={{ background: 'rgba(0,96,192,0.05)', border: '1px solid rgba(0,96,192,0.18)', borderRadius: 14, padding: '11px 13px', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+              <span style={{ fontFamily: 'var(--font-num)', fontWeight: 800, fontSize: 13.5, color: '#0E7A52' }}>{vSummary.valid} valid</span>
+              <span style={{ color: 'var(--line)' }}>·</span>
+              <span style={{ fontFamily: 'var(--font-num)', fontWeight: 800, fontSize: 13.5, color: '#8A5A00' }}>{vSummary.pending} menunggu</span>
+              <span style={{ color: 'var(--line)' }}>·</span>
+              <span style={{ fontFamily: 'var(--font-num)', fontWeight: 800, fontSize: 13.5, color: '#B42318' }}>{vSummary.invalid} belum cocok</span>
+              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 11.5, color: 'var(--muted)' }}>{vSummary.validKm} km dihitung</span>
+            </div>
+            <p style={{ margin: 0, fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+              Hanya lari <b style={{ color: '#0E7A52' }}>tervalidasi</b> yang masuk leaderboard, jadi <b>posisimu bisa berubah</b> saat data divalidasi.{vSummary.pending > 0 ? ' Lari “menunggu” sedang kami cek fotonya.' : ''}{vSummary.invalid > 0 ? ' Untuk yang “belum cocok”, angka di foto beda dari input — catat ulang dengan foto/angka yang sesuai.' : ''}
+            </p>
+            {genderMissing && (
+              <p style={{ margin: '7px 0 0', fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--blue)', lineHeight: 1.5, fontWeight: 700 }}>
+                Lengkapi <b>gender</b> di profil (tombol Edit di atas) supaya kamu masuk papan peringkat Perempuan/Laki-laki.
+              </p>
+            )}
+          </div>
           <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 18, padding: '2px 14px' }}>
             {sortedRuns.slice(0, showCount).map((r, i) => (
               <div key={r.external_id || i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: i ? '1px solid var(--line)' : 'none' }}>
@@ -643,7 +692,10 @@ function WebProfile({ data, onConnect, onLogout, onEditGoal, onSaveProfile, team
                     <span style={{ fontFamily: 'var(--font-num)', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>{WFmt.km(r.km)} km</span>
                     {r.mins ? <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--muted)' }}>· {WFmt.dur(r.mins)}</span> : null}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)', marginTop: 1 }}>{r.when || 'Today'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--muted)' }}>{r.when || 'Today'}</span>
+                    <RunValidBadge status={r.proofStatus} />
+                  </div>
                 </div>
                 {onShareRun && (
                   <button onClick={() => onShareRun(r)} style={{ border: 'none', background: 'rgba(0,96,192,0.08)', cursor: 'pointer', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 12, color: 'var(--blue)', flexShrink: 0 }}>
@@ -980,14 +1032,24 @@ function WebApp() {
           }
         }
         try {
+          // Status validasi otomatis dari komponen Log Run:
+          //   'valid' → terverifikasi; 'needs_review' → menunggu tinjauan tim.
+          // Kalau foto GAGAL tersimpan, paksa 'needs_review' (tak bisa diverifikasi).
+          var vstatus = run.proofStatus || (run.proofValid ? 'valid' : 'needs_review');
+          if (!photoUrl) vstatus = 'needs_review';
           await window.UZSupa.insertRun({
             external_id: extId, recorded_at: nowIso,
             distance_km: run.km,
             duration_seconds: run.mins ? Math.round(run.mins * 60) : null,
             source: run.source || 'manual',
             photo_url: photoUrl,
-            // Jangan tandai terverifikasi kalau fotonya gagal tersimpan → tim tinjau.
-            proof_valid: photoUrl ? !!run.proofValid : false,
+            proof_status: vstatus,
+            proof_valid: vstatus === 'valid',
+            km_detected: run.kmDetected != null ? run.kmDetected : null,
+            delta: run.delta != null ? run.delta : null,
+            tolerance: run.tolerance != null ? run.tolerance : 0.5,
+            proof_reason: run.proofReason || (!photoUrl ? 'Proof photo failed to upload; held for review.' : null),
+            validation_method: 'ai_auto',
           });
         } catch (e) { console.warn('insertRun', e && e.message); }
       })();

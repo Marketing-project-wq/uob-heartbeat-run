@@ -363,12 +363,31 @@
         external_id: extId,
       }, { onConflict: 'external_id' }).select().single();
       if (r.error) throw r.error;
-      if (r.data && r.data.id && run.proof_valid != null) {
+      // Status validasi tiga-nilai. Prioritas run.proof_status ('valid' |
+      // 'invalid' | 'needs_review'); fallback ke boolean run.proof_valid lama.
+      var vstatus = run.proof_status || null;
+      if (!vstatus && run.proof_valid != null) vstatus = run.proof_valid ? 'valid' : 'needs_review';
+      if (r.data && r.data.id && vstatus) {
+        // proof_status disimpan konsisten: valid→'auto_verified' (dipakai view
+        // leaderboard via proof_valid=true), selain itu simpan status apa adanya.
+        var storedStatus = vstatus === 'valid' ? 'auto_verified' : vstatus; // 'invalid' | 'needs_review'
         try {
           await sb.from('uob_activities').update({
-            proof_valid: !!run.proof_valid,
-            proof_status: run.proof_valid ? 'auto_verified' : 'needs_review',
+            proof_valid: vstatus === 'valid',
+            proof_status: storedStatus,
           }).eq('id', r.data.id);
+        } catch (e) {}
+        // Jejak audit (tak menimpa input asli). Simpan angka yang dibaca AI, dsb.
+        try {
+          await this.recordValidation(r.data.id, {
+            status: vstatus,
+            km_input: dist,
+            km_detected: run.km_detected != null ? run.km_detected : null,
+            delta: run.delta != null ? run.delta : null,
+            tolerance: run.tolerance != null ? run.tolerance : 0.5,
+            reason: run.proof_reason || null,
+            method: run.validation_method || 'ai_auto',
+          });
         } catch (e) {}
       }
       try { await this.recalcWeeklyTotal(); } catch (e) {}
@@ -394,11 +413,14 @@
       try { await this.recalcWeeklyTotal(); } catch (e) {}
       return rows.length;
     },
-    // ── Validasi bukti lari (AI vision via Edge Function) ─────
-    //   Mengirim foto → diklasifikasi: jam digital / screenshot health
-    //   app berisi km = valid; selfie/lainnya = invalid (+alasan).
-    //   serviceError=true → layanan error (app fail-open: terima, review manual).
+    // ── Validasi bukti lari (AI vision via Edge Function, v2) ─────
+    //   Kirim foto + km input → AI BACA angka km dari foto & cocokkan.
+    //   Balikan: { valid, status, km_detected, delta, tolerance, reason }
+    //     status: 'valid' | 'invalid' | 'needs_review'
+    //   serviceError=true → layanan error/mati (app fail-open: terima,
+    //   tandai needs_review). Saat serviceError, status dipaksa 'needs_review'.
     async validateRunProof(imageDataUrl, km) {
+      var fail = { valid: false, serviceError: true, status: 'needs_review', km_detected: null, delta: null, tolerance: null, reason: '' };
       try {
         var s = await sb.auth.getSession();
         var jwt = s && s.data && s.data.session && s.data.session.access_token;
@@ -407,11 +429,40 @@
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (jwt || cfg.anonKey), 'apikey': cfg.anonKey },
           body: JSON.stringify({ image: imageDataUrl, km: km }),
         });
-        if (!res.ok) return { valid: false, serviceError: true, reason: '' };
+        if (!res.ok) return fail;
         var j = await res.json();
-        if (j && j.error) return { valid: false, serviceError: true, reason: '' };
-        return { valid: !!(j && j.valid), reason: (j && j.reason) || '' };
-      } catch (e) { return { valid: false, serviceError: true, reason: '' }; }
+        if (j && j.error) return fail;
+        return {
+          valid: !!(j && j.valid),
+          serviceError: false,
+          status: (j && j.status) || (j && j.valid ? 'valid' : 'needs_review'),
+          km_detected: (j && j.km_detected != null) ? Number(j.km_detected) : null,
+          delta: (j && j.delta != null) ? Number(j.delta) : null,
+          tolerance: (j && j.tolerance != null) ? Number(j.tolerance) : null,
+          reason: (j && j.reason) || '',
+        };
+      } catch (e) { return fail; }
+    },
+
+    // Tulis 1 baris jejak audit validasi (immutable) untuk sebuah aktivitas.
+    //   v: { status, km_input, km_detected, delta, tolerance, reason, method }
+    // Tidak mengubah input asli; hanya menambah riwayat + set status terkini.
+    async recordValidation(activityId, v) {
+      var u = await currentUser(); if (!u || !activityId) return;
+      try {
+        await sb.from('uob_run_validations').insert({
+          activity_id: activityId,
+          user_id: u.id,
+          km_input: v && v.km_input != null ? v.km_input : null,
+          km_detected: v && v.km_detected != null ? v.km_detected : null,
+          delta_km: v && v.delta != null ? v.delta : null,
+          tolerance_km: v && v.tolerance != null ? v.tolerance : 0.5,
+          status: (v && v.status) || 'needs_review',
+          method: (v && v.method) || 'ai_auto',
+          reason: (v && v.reason) || null,
+          validated_by: 'ai',
+        });
+      } catch (e) { console.warn('recordValidation', e && e.message); }
     },
 
     async myRuns(limit) {
@@ -490,6 +541,59 @@
       var r = await sb.from('uob_leaderboard_season').select('*').order('total_km', { ascending: false }).limit(100);
       if (r.error) { r = await sb.from('uob_leaderboard_season').select('*').limit(100); }
       return r.data || [];
+    },
+    // Leaderboard musim VALID-ONLY (hanya km tervalidasi). Sumber:
+    // view uob_leaderboard_valid_season. Dipakai untuk ranking L/P resmi.
+    // Dinormalkan ke bentuk yang sama dengan leaderboardSeason (total_km).
+    async leaderboardValidSeason() {
+      var r = await sb.from('uob_leaderboard_valid_season')
+        .select('*').order('total_km_valid', { ascending: false }).limit(200);
+      if (r.error) {
+        r = await sb.from('uob_leaderboard_valid_season').select('*').limit(200);
+        if (r.error) { console.warn('lbValid', r.error.message); return []; }
+      }
+      return (r.data || []).map(function (x) {
+        return {
+          user_id: x.user_id, full_name: x.full_name, team: x.team,
+          department: x.department, gender: x.gender, avatar_url: x.avatar_url,
+          total_km: Number(x.total_km_valid) || 0,
+          valid_runs: Number(x.valid_runs) || 0,
+          first_valid_at: x.first_valid_at || null,
+        };
+      });
+    },
+    // Leaderboard harian VALID-ONLY (hari ini). Dinormalkan ke km_today.
+    async leaderboardValidDaily() {
+      var r = await sb.from('uob_leaderboard_valid_daily')
+        .select('*').order('km_today_valid', { ascending: false }).limit(200);
+      if (r.error) {
+        r = await sb.from('uob_leaderboard_valid_daily').select('*').limit(200);
+        if (r.error) { console.warn('lbValidDaily', r.error.message); return []; }
+      }
+      return (r.data || []).map(function (x) {
+        return {
+          user_id: x.user_id, full_name: x.full_name, team: x.team,
+          department: x.department, gender: x.gender, avatar_url: x.avatar_url,
+          km_today: Number(x.km_today_valid) || 0,
+          valid_runs: Number(x.valid_runs) || 0,
+        };
+      });
+    },
+    // Ringkasan status validasi lari SAYA (untuk halaman user):
+    //   { valid_km, valid_runs, pending, invalid } — dihitung dari uob_activities.
+    async myValidationSummary() {
+      var u = await currentUser(); if (!u) return { valid_km: 0, valid_runs: 0, pending: 0, invalid: 0 };
+      var r = await sb.from('uob_activities')
+        .select('distance_km, proof_valid, proof_status').eq('user_id', u.id);
+      var rows = r.data || [];
+      var out = { valid_km: 0, valid_runs: 0, pending: 0, invalid: 0 };
+      rows.forEach(function (a) {
+        if (a.proof_valid === true) { out.valid_runs++; out.valid_km += Number(a.distance_km) || 0; }
+        else if (a.proof_status === 'invalid') { out.invalid++; }
+        else { out.pending++; } // needs_review / null / belum tervalidasi
+      });
+      out.valid_km = Math.round(out.valid_km * 100) / 100;
+      return out;
     },
     // Peta gender per user_id → buat filter leaderboard per gender.
     async genderMap() {

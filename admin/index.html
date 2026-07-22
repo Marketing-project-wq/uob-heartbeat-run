@@ -280,14 +280,12 @@
     state.stats = r.data;
     renderKPIs(); renderCharts();
     loadUsers(); loadQueue(); loadTop();
-    // Paksa ganti password saat login pertama (flag must_change_pw di server).
-    try {
-      var st = await sb.rpc('uob_admin_status');
-      if(!st.error && st.data && st.data.must_change_pw){ openChangePw(true); }
-    } catch(e){}
+    // (Tidak ada paksaan ganti password — password permanen. Ganti password
+    //  hanya sukarela via tombol "Ganti Password" di topbar.)
   }
 
-  // Ganti password. mandatory=true → tak bisa ditutup sebelum berhasil.
+  // Ganti password (sukarela). mandatory dipertahankan utk fleksibilitas,
+  // tapi tidak pernah dipanggil dengan mandatory=true.
   function openChangePw(mandatory){
     var m = document.createElement('div'); m.className='modal-bg';
     m.innerHTML = '<div class="modal"><h3>'+(mandatory?'Ganti Password (wajib)':'Ganti Password')+'</h3>'+

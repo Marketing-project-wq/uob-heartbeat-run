@@ -179,6 +179,10 @@
           <div id="genderChart"></div>
         </div>
       </div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel topcol"><h3>🏃‍♀️ Top 5 KM — Perempuan <span class="note" style="font-weight:500">valid</span></h3><div id="ovTopF"></div></div>
+        <div class="panel topcol"><h3>🏃‍♂️ Top 5 KM — Laki-laki <span class="note" style="font-weight:500">valid</span></h3><div id="ovTopM"></div></div>
+      </div>
       <div class="panel" style="margin-top:16px">
         <h2>Kunjungan Portal per Minggu <span class="note">— berapa kali peserta membuka halaman (WIB)</span></h2>
         <div id="visitsChart"></div>
@@ -282,7 +286,7 @@
     $('whoami').textContent = (u && u.email) || '';
     $('login').classList.add('hidden'); $('app').classList.remove('hidden');
     state.stats = r.data;
-    renderKPIs(); renderCharts(); renderVisits();
+    renderKPIs(); renderCharts(); renderVisits(); renderTop5();
     loadUsers(); loadTop();
     // Cek hak validasi. Hanya admin can_validate (marketing) yang boleh buka
     // tab Validasi & ambil datanya (server yang menegakkan; ini utk UI saja).
@@ -332,7 +336,7 @@
   })();
 
   $('logoutBtn').onclick = async function(){ await sb.auth.signOut(); location.reload(); };
-  $('refreshBtn').onclick = async function(){ this.disabled=true; var r=await sb.rpc('uob_admin_stats'); if(!r.error){state.stats=r.data;renderKPIs();renderCharts();} renderVisits(); var tasks=[loadUsers(),loadTop()]; if(state.canValidate) tasks.push(loadQueue()); await Promise.all(tasks); this.disabled=false; };
+  $('refreshBtn').onclick = async function(){ this.disabled=true; var r=await sb.rpc('uob_admin_stats'); if(!r.error){state.stats=r.data;renderKPIs();renderCharts();} renderVisits(); renderTop5(); var tasks=[loadUsers(),loadTop()]; if(state.canValidate) tasks.push(loadQueue()); await Promise.all(tasks); this.disabled=false; };
 
   // ---------------- TABS ----------------
   function showTab(name){
@@ -424,6 +428,16 @@
           '<div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div></div>';
       }).join('')+'</div>'+
       '<div style="font-size:11.5px;color:var(--muted);margin-top:10px">Tinggi batang = jumlah kunjungan minggu itu (mulai tanggal awal minggu, WIB). Hover batang untuk jumlah orang unik.</div>';
+  }
+
+  // Top 5 KM per gender untuk tab Ringkasan (reuse renderTop).
+  async function renderTop5(){
+    if($('ovTopF')) $('ovTopF').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+    if($('ovTopM')) $('ovTopM').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+    var f = await sb.rpc('uob_admin_top_km', { p_gender:'Female', p_limit:5 });
+    var m = await sb.rpc('uob_admin_top_km', { p_gender:'Male', p_limit:5 });
+    if($('ovTopF')) $('ovTopF').innerHTML = renderTop(f);
+    if($('ovTopM')) $('ovTopM').innerHTML = renderTop(m);
   }
 
   // ---------------- USERS TABLE ----------------

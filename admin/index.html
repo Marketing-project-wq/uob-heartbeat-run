@@ -179,6 +179,10 @@
           <div id="genderChart"></div>
         </div>
       </div>
+      <div class="panel" style="margin-top:16px">
+        <h2>Kunjungan Portal per Minggu <span class="note">— berapa kali peserta membuka halaman (WIB)</span></h2>
+        <div id="visitsChart"></div>
+      </div>
     </section>
 
     <!-- USERS -->
@@ -248,7 +252,7 @@
   var num = function(n){ return (Number(n)||0).toLocaleString('id-ID'); };
   var km = function(n){ return (Math.round((Number(n)||0)*10)/10).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1}); };
 
-  var state = { users:[], queue:[], stats:null, tab:'overview', email:'' };
+  var state = { users:[], queue:[], stats:null, tab:'overview', email:'', canValidate:false, valUnlocked:false };
 
   // ---------------- LOGIN ----------------
   function setMsg(el,type,txt){ el.innerHTML = txt ? '<div class="msg '+type+'">'+txt+'</div>' : ''; }
@@ -278,8 +282,17 @@
     $('whoami').textContent = (u && u.email) || '';
     $('login').classList.add('hidden'); $('app').classList.remove('hidden');
     state.stats = r.data;
-    renderKPIs(); renderCharts();
-    loadUsers(); loadQueue(); loadTop();
+    renderKPIs(); renderCharts(); renderVisits();
+    loadUsers(); loadTop();
+    // Cek hak validasi. Hanya admin can_validate (marketing) yang boleh buka
+    // tab Validasi & ambil datanya (server yang menegakkan; ini utk UI saja).
+    try {
+      var st = await sb.rpc('uob_admin_status');
+      state.canValidate = !!(st.data && st.data.can_validate);
+    } catch(e){ state.canValidate = false; }
+    var reviewTab = document.querySelector('.tab[data-tab="review"]');
+    if(state.canValidate){ if(reviewTab) reviewTab.classList.remove('hidden'); loadQueue(); }
+    else { if(reviewTab) reviewTab.classList.add('hidden'); }
     // (Tidak ada paksaan ganti password — password permanen. Ganti password
     //  hanya sukarela via tombol "Ganti Password" di topbar.)
   }
@@ -319,16 +332,44 @@
   })();
 
   $('logoutBtn').onclick = async function(){ await sb.auth.signOut(); location.reload(); };
-  $('refreshBtn').onclick = async function(){ this.disabled=true; var r=await sb.rpc('uob_admin_stats'); if(!r.error){state.stats=r.data;renderKPIs();renderCharts();} await Promise.all([loadUsers(),loadQueue(),loadTop()]); this.disabled=false; };
+  $('refreshBtn').onclick = async function(){ this.disabled=true; var r=await sb.rpc('uob_admin_stats'); if(!r.error){state.stats=r.data;renderKPIs();renderCharts();} renderVisits(); var tasks=[loadUsers(),loadTop()]; if(state.canValidate) tasks.push(loadQueue()); await Promise.all(tasks); this.disabled=false; };
 
   // ---------------- TABS ----------------
+  function showTab(name){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('active', x.dataset.tab===name); });
+    ['overview','users','review','top'].forEach(function(n){ $('tab-'+n).classList.toggle('hidden', n!==name); });
+  }
   document.querySelectorAll('.tab').forEach(function(t){
     t.onclick = function(){
-      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
-      t.classList.add('active');
-      ['overview','users','review','top'].forEach(function(name){ $('tab-'+name).classList.toggle('hidden', name!==t.dataset.tab); });
+      var name = t.dataset.tab;
+      if(name==='review'){
+        if(!state.canValidate){ return; }            // uob dsb: tak boleh (tab juga disembunyikan)
+        if(!state.valUnlocked){ openValGate(); return; } // minta password 20FitFit dulu
+      }
+      showTab(name);
     };
   });
+
+  // Gerbang password untuk tab Validasi (friksi tambahan; keamanan UTAMA =
+  // pembatasan can_validate di server, uob benar-benar ditolak server).
+  function openValGate(){
+    var m=document.createElement('div'); m.className='modal-bg';
+    m.innerHTML='<div class="modal"><h3>Akses Validasi Data</h3>'+
+      '<p style="color:var(--muted);font-size:12.5px;margin:2px 0 0">Masukkan password akses untuk membuka halaman validasi.</p>'+
+      '<div class="field"><label>Password akses</label><input id="vg" type="password" autocomplete="off"/></div>'+
+      '<div id="vgMsg"></div>'+
+      '<div class="actions"><button class="btn btn-ghost" id="vgCancel">Batal</button><button class="btn btn-primary" id="vgOk">Buka</button></div></div>';
+    $('modalRoot').appendChild(m);
+    var inp=m.querySelector('#vg'); setTimeout(function(){inp.focus();},50);
+    m.querySelector('#vgCancel').onclick=function(){ m.remove(); };
+    m.onclick=function(e){ if(e.target===m) m.remove(); };
+    var submit=function(){
+      if(inp.value==='20FitFit'){ state.valUnlocked=true; m.remove(); showTab('review'); }
+      else { setMsg(m.querySelector('#vgMsg'),'err','Password akses salah.'); inp.select(); }
+    };
+    m.querySelector('#vgOk').onclick=submit;
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') submit(); });
+  }
 
   // ---------------- KPIs + CHART ----------------
   function renderKPIs(){
@@ -362,6 +403,27 @@
       '<div class="legend"><span><i style="background:#E4557E"></i>Perempuan ('+num(s.onboarded_female)+')</span>'+
       '<span><i style="background:#2E8BE6"></i>Laki-laki ('+num(s.onboarded_male)+')</span>'+
       '<span><i style="background:#9AA7B8"></i>Belum diisi ('+num(s.onboarded_no_gender)+')</span></div>';
+  }
+
+  async function renderVisits(){
+    var el = $('visitsChart'); if(!el) return;
+    el.innerHTML = '<div class="empty"><span class="spinner"></span> Memuat…</div>';
+    var r = await sb.rpc('uob_admin_weekly_visits');
+    if(r.error){ el.innerHTML = '<div class="empty">Gagal memuat.</div>'; return; }
+    var rows = r.data || [];
+    if(!rows.length){ el.innerHTML = '<div class="empty">Belum ada data kunjungan. Mulai tercatat setelah peserta membuka portal.</div>'; return; }
+    var max = Math.max.apply(null, rows.map(function(x){ return Number(x.visits)||0; })) || 1;
+    el.innerHTML =
+      '<div style="display:flex;align-items:flex-end;gap:14px;height:170px;padding-top:8px">'+
+      rows.map(function(x){
+        var v=Number(x.visits)||0, h=Math.round(v/max*130)+6;
+        var d=new Date(x.week_start); var lbl=d.getDate()+'/'+(d.getMonth()+1);
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0">'+
+          '<div style="font-family:var(--font);font-weight:800;font-size:12.5px;color:var(--ink)">'+num(v)+'</div>'+
+          '<div title="'+num(x.visitors)+' orang unik" style="width:100%;max-width:48px;height:'+h+'px;background:linear-gradient(180deg,var(--orange),var(--orange-2));border-radius:8px 8px 0 0"></div>'+
+          '<div style="font-size:10.5px;color:var(--muted)">'+lbl+'</div></div>';
+      }).join('')+'</div>'+
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:10px">Tinggi batang = jumlah kunjungan minggu itu (mulai tanggal awal minggu, WIB). Hover batang untuk jumlah orang unik.</div>';
   }
 
   // ---------------- USERS TABLE ----------------

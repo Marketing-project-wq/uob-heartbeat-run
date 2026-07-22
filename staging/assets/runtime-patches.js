@@ -132,4 +132,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (banner) banner.classList.add('show');
       }
     });
+
+    // Catat kunjungan portal (untuk metrik mingguan di dashboard admin).
+    // Ditunda 4 detik supaya sesi login sudah pulih → kunjungan terhubung ke user.
+    setTimeout(function () {
+      try { if (window.UZSupa && window.UZSupa.logVisit) window.UZSupa.logVisit(); } catch (e) {}
+    }, 4000);
 });

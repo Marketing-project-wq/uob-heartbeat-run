@@ -656,6 +656,19 @@
       var r = await sb.from('uob_team_members').delete().eq('team_id', teamId).eq('user_id', u.id).select();
       return { ok: !r.error };
     },
+    // Catat kunjungan halaman (analitik ringan untuk dashboard admin).
+    // Throttle 1x/jam per device via localStorage supaya tidak spam.
+    async logVisit() {
+      try {
+        var key = 'uobhb_lastVisit';
+        var last = parseInt(localStorage.getItem(key) || '0', 10);
+        if (Date.now() - last < 60 * 60 * 1000) return;
+        var u = null; try { u = await currentUser(); } catch (e) {}
+        await sb.from('uob_page_visits').insert({ user_id: u ? u.id : null, path: (typeof location !== 'undefined' && location.pathname) || '/' });
+        try { localStorage.setItem(key, String(Date.now())); } catch (e) {}
+      } catch (e) {}
+    },
+
     // Upload foto profil → bucket "avatars" → simpan avatar_url di uob_users.
     async uploadAvatar(file) {
       var u = await currentUser(); if (!u || !file) return null;

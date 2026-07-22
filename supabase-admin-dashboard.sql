@@ -77,6 +77,43 @@ grant execute on function public.uob_admin_password_changed() to authenticated;
 --     select id, email, true from auth.users where email='<admin-email>'
 --     on conflict (user_id) do update set must_change_pw = true;
 
+-- 3c) Batasi VALIDASI ke admin ber-flag can_validate (mis. marketing@20fit.id).
+--     uob_admin_review_queue & uob_admin_set_validation memakai guard ini,
+--     jadi admin lain (can_validate=false) benar-benar ditolak server.
+alter table public.uob_admins add column if not exists can_validate boolean not null default false;
+-- contoh: update public.uob_admins set can_validate = (lower(email)='marketing@20fit.id');
+create or replace function public.uob_can_validate(uid uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.uob_admins a where a.user_id = uid and a.can_validate);
+$$;
+grant execute on function public.uob_can_validate(uuid) to authenticated;
+-- (uob_admin_status juga mengembalikan can_validate; review_queue & set_validation
+--  di bagian 6 memakai uob_can_validate sebagai guard.)
+
+-- 3d) Kunjungan halaman + agregasi mingguan (metrik "orang masuk ke page").
+create table if not exists public.uob_page_visits (
+  id bigint generated always as identity primary key,
+  user_id uuid, path text, visited_at timestamptz not null default now()
+);
+create index if not exists uob_page_visits_at_idx on public.uob_page_visits (visited_at);
+alter table public.uob_page_visits enable row level security;
+drop policy if exists "visits insert any" on public.uob_page_visits;
+create policy "visits insert any" on public.uob_page_visits
+  for insert to anon, authenticated with check (true);
+create or replace function public.uob_admin_weekly_visits()
+returns table(week_start date, visits bigint, visitors bigint)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.uob_is_admin(auth.uid()) then raise exception 'not_authorized' using errcode='42501'; end if;
+  return query
+  with w as (
+    select (date_trunc('week',(visited_at at time zone 'Asia/Jakarta')))::date as wk, user_id
+    from uob_page_visits where visited_at > now() - interval '8 weeks'
+  )
+  select wk, count(*)::bigint, count(distinct user_id)::bigint from w group by wk order by wk;
+end $$;
+grant execute on function public.uob_admin_weekly_visits() to authenticated;
+
 -- 4) KPI ringkas
 create or replace function public.uob_admin_stats()
 returns json language plpgsql stable security definer set search_path = public as $$
